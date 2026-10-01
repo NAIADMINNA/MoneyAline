@@ -163,6 +163,12 @@ export const DepositForm: React.FC<DepositFormProps> = ({
   };
 
   const handleWorkerChange = (index: number, field: keyof ForeignWorker, value: string) => {
+    // ล็อคชื่อคนต่างด้าวเป็นภาษาอังกฤษตัวพิมพ์ใหญ่เท่านั้น (แปลงพิมพ์เล็กเป็นพิมพ์ใหญ่อัตโนมัติ)
+    let cleanValue = value;
+    if (field === 'name') {
+      cleanValue = value.toUpperCase().replace(/[^A-Z\s\.\-']/g, '');
+    }
+
     setFormData(prev => {
       const currentWorkers = [...(prev.workers || [])];
       if (!currentWorkers[index]) {
@@ -176,7 +182,7 @@ export const DepositForm: React.FC<DepositFormProps> = ({
       }
       currentWorkers[index] = {
         ...currentWorkers[index],
-        [field]: value,
+        [field]: cleanValue,
       };
 
       // If category was changed, also update summarized alienCategory
@@ -309,7 +315,7 @@ export const DepositForm: React.FC<DepositFormProps> = ({
         {
           id: 'w-ex-1',
           idCardNumber: '0-0012-34567-89-1',
-          name: 'นายอ่อง ซาน (Aung San)',
+          name: 'AUNG SAN',
           nationality: 'เมียนมา (Myanmar)',
         }
       ],
@@ -942,17 +948,25 @@ export const DepositForm: React.FC<DepositFormProps> = ({
                         />
                       </div>
 
-                      {/* ชื่อ-นามสกุล คนต่างด้าว */}
+                      {/* ชื่อ-นามสกุล คนต่างด้าว (ล็อคภาษาอังกฤษพิมพ์ใหญ่เท่านั้น) */}
                       <div>
-                        <label className="block text-[11px] font-medium text-slate-600 mb-1">
-                          ชื่อ-นามสกุล คนต่างด้าว <span className="text-red-500">*</span>
-                        </label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[11px] font-medium text-slate-600">
+                            ชื่อ-นามสกุล คนต่างด้าว <span className="text-red-500">*</span>
+                          </label>
+                          <span className="text-[10px] text-indigo-700 font-semibold bg-indigo-50 border border-indigo-200/60 px-1.5 py-0.5 rounded">
+                            ภาษาอังกฤษพิมพ์ใหญ่ (A-Z)
+                          </span>
+                        </div>
                         <input
                           type="text"
                           value={worker.name}
-                          onChange={(e) => handleWorkerChange(idx, 'name', e.target.value)}
-                          placeholder="เช่น นายอ่อง ซาน (Aung San)"
-                          className="w-full px-3 py-1.5 text-xs rounded-md border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
+                          onChange={(e) => {
+                            const upperVal = e.target.value.toUpperCase().replace(/[^A-Z\s\.\-']/g, '');
+                            handleWorkerChange(idx, 'name', upperVal);
+                          }}
+                          placeholder="ระบุตัวพิมพ์ใหญ่ เช่น AUNG SAN"
+                          className="w-full px-3 py-1.5 text-xs rounded-md border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 uppercase font-mono tracking-wide transition"
                         />
                       </div>
 

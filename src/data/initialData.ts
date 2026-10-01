@@ -183,7 +183,7 @@ export const INITIAL_RECORDS: DepositRecord[] = [
       {
         id: 'w-1',
         idCardNumber: '0-0012-34567-89-1',
-        name: 'นายอ่อง ซาน (Aung San)',
+        name: 'AUNG SAN',
         nationality: 'เมียนมา (Myanmar)',
       }
     ],
