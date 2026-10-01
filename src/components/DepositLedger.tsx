@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { DepositRecord } from '../types/deposit';
 import { formatThaiCurrency, formatNumber, formatToBuddhistDate } from '../utils/thaiBahtText';
+import { exportDatabaseToCSV } from '../utils/csvDatabaseExport';
 
 interface DepositLedgerProps {
   records: DepositRecord[];
@@ -77,64 +78,9 @@ export const DepositLedger: React.FC<DepositLedgerProps> = ({
     });
   }, [records, searchQuery, filterChannel, filterType]);
 
-  // Export to CSV with UTF-8 BOM so Excel opens Thai correctly
+  // Export to CSV with UTF-8 BOM strictly matching the 22-column database structure
   const exportToCSV = () => {
-    const headers = [
-      'วันที่ชำระเงิน',
-      'เลขที่คำขอ',
-      'เล่มที่',
-      'เลขที่ใบเสร็จ',
-      'ประเภทนายจ้าง',
-      'ชื่อนายจ้าง/บริษัท',
-      'เลขประจำตัวนายจ้าง 13 หลัก',
-      'เบอร์โทรศัพท์',
-      'ประเภทแรงงานหลัก',
-      'จำนวนคน',
-      'เลขประจำตัวคนต่างด้าว (13 หลัก)',
-      'ชื่อ-นามสกุลคนต่างด้าว',
-      'สัญชาติ',
-      'อัตราต่อคน',
-      'ยอดรวม (บาท)',
-      'เจ้าหน้าที่ผู้รับเงิน',
-      'สำนักงานจัดหางาน',
-    ];
-
-    const rows = filteredRecords.map((r) => {
-      const workers = r.workers || [];
-      const workerIds = workers.map((w, idx) => (workers.length > 1 ? `${idx + 1}. ` : '') + (w.idCardNumber || '-')).join('; ');
-      const workerNames = workers.map((w, idx) => (workers.length > 1 ? `${idx + 1}. ` : '') + (w.name || '-')).join('; ');
-      const workerNats = workers.map((w, idx) => (workers.length > 1 ? `${idx + 1}. ` : '') + (w.nationality || '-')).join('; ');
-
-      return [
-        `"${formatToBuddhistDate(r.paymentDate)}"`,
-        `"${r.requestNumber}"`,
-        `"${r.receiptBook}"`,
-        `"${r.receiptNumber}"`,
-        `"${r.employerType === 'individual' ? 'บุคคลธรรมดา' : 'นิติบุคคล'}"`,
-        `"${r.employerName.replace(/"/g, '""')}"`,
-        `"${r.idCardNumber}"`,
-        `"${r.phoneNumber || ''}"`,
-        `"${r.alienCategory}"`,
-        r.alienCount,
-        `"${workerIds.replace(/"/g, '""')}"`,
-        `"${workerNames.replace(/"/g, '""')}"`,
-        `"${workerNats.replace(/"/g, '""')}"`,
-        r.ratePerPerson,
-        r.totalAmount,
-        `"${r.officerName}"`,
-        `"${r.employmentOffice}"`,
-      ];
-    });
-
-    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((row) => row.join(','))].join('\r\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `foreign-worker-deposits-${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    exportDatabaseToCSV(filteredRecords, 'all');
   };
 
   return (

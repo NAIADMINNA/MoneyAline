@@ -194,8 +194,8 @@ export const GoogleSheetsBar: React.FC<GoogleSheetsBarProps> = ({
   };
 
   return (
-    <div className="max-w-[1360px] mx-auto px-4 sm:px-6 mb-5">
-      <div className="bg-white rounded-xl border border-emerald-200/90 shadow-xs p-3.5 sm:p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3.5">
+    <div className="max-w-[1360px] mx-auto px-4 sm:px-6">
+      <div className="hidden bg-white rounded-xl border border-emerald-200/90 shadow-xs p-3.5 sm:p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3.5">
         
         {/* Left: Google Sheets connection info */}
         <div className="flex items-center gap-3">

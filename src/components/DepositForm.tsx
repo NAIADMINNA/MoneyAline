@@ -545,30 +545,39 @@ export const DepositForm: React.FC<DepositFormProps> = ({
         </div>
       )}
       
-      {/* Top Header Banner matching the image */}
-      <div className="bg-gradient-to-r from-[#173499] via-[#1a389f] to-[#1e40af] text-white px-6 py-5 sm:px-8 sm:py-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-inner">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-            บันทึกการชำระเงินค่าวางหลักประกันแรงงานต่างด้าว
-          </h1>
+      {/* Top Header Banner matching official institutional style */}
+      <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-blue-800 text-white px-6 py-5 sm:px-8 sm:py-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg shadow-blue-950/20 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none -z-10" />
+        <div className="flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-2xl bg-white/10 text-white backdrop-blur-md ring-1 ring-white/25 flex items-center justify-center font-bold shadow-inner shrink-0">
+            <Building2 className="w-6 h-6 text-amber-300" />
+          </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-white flex items-center gap-2">
+              แบบบันทึกการชำระเงินค่าวางหลักประกันคนต่างด้าว
+            </h1>
+            <p className="text-xs text-blue-200 mt-0.5">
+              ตามพระราชกำหนดการบริหารจัดการการทำงานของคนต่างด้าว พ.ศ. ๒๕๖๐ และที่แก้ไขเพิ่มเติม
+            </p>
+          </div>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium bg-white/15 border border-white/25 text-white/95 backdrop-blur-sm">
-            <Info className="w-3.5 h-3.5 text-blue-200 shrink-0" />
-            <span>วางหลักประกันอัตราคงที่ 1,000 บาทต่อคน</span>
+          <div className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold bg-amber-400/20 border border-amber-300/40 text-amber-200 backdrop-blur-sm shadow-xs">
+            <Info className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+            <span>อัตราจัดเก็บคงที่ 1,000 บาทต่อคน</span>
           </div>
         </div>
       </div>
 
       {/* Main Form Body */}
-      <div className="p-5 sm:p-7 md:p-8 space-y-6 bg-slate-50/50">
+      <div className="p-5 sm:p-7 md:p-8 space-y-6 bg-slate-50/60">
         
         {/* Error Banner if any required field is missing */}
         {Object.keys(errors).length > 0 && (
-          <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm flex items-center gap-2">
+          <div className="p-4 bg-red-50 border-2 border-red-200 rounded-2xl text-red-700 text-xs sm:text-sm flex items-center gap-3 shadow-xs">
             <AlertCircle className="w-5 h-5 shrink-0 text-red-500" />
-            <span>กรุณากรอกข้อมูลในช่องที่จำเป็นให้ครบถ้วนก่อนบันทึก ({Object.values(errors).join(', ')})</span>
+            <span className="font-medium">กรุณากรอกข้อมูลในช่องที่จำเป็นให้ครบถ้วนก่อนบันทึก ({Object.values(errors).join(', ')})</span>
           </div>
         )}
 
@@ -576,11 +585,13 @@ export const DepositForm: React.FC<DepositFormProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
           {/* Section 1: ข้อมูลเอกสารและหลักฐาน */}
-          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:border-slate-300 transition-colors flex flex-col justify-between">
+          <div className="bg-white rounded-2xl border border-slate-200/90 border-t-4 border-t-blue-600 p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
             <div className="space-y-4">
-              <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-                <FileText className="w-5 h-5 text-blue-600 shrink-0" />
-                <h2 className="text-base font-semibold text-slate-800">
+              <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+                <span className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold shadow-2xs">
+                  <FileText className="w-4 h-4" />
+                </span>
+                <h2 className="text-base font-bold text-slate-800">
                   1. ข้อมูลเอกสารและหลักฐาน
                 </h2>
               </div>
@@ -661,16 +672,20 @@ export const DepositForm: React.FC<DepositFormProps> = ({
           </div>
 
           {/* Section 2: ข้อมูลนายจ้าง / สถานประกอบการ */}
-          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:border-slate-300 transition-colors flex flex-col justify-between">
+          <div className="bg-white rounded-2xl border border-slate-200/90 border-t-4 border-t-teal-600 p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
             <div className="space-y-4">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                <div className="flex items-center gap-2">
-                  <User className="w-5 h-5 text-blue-600 shrink-0" />
-                  <h2 className="text-base font-semibold text-slate-800">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-8 h-8 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center font-bold shadow-2xs">
+                    <User className="w-4 h-4" />
+                  </span>
+                  <h2 className="text-base font-bold text-slate-800">
                     2. ข้อมูลนายจ้าง / สถานประกอบการ
                   </h2>
                 </div>
-                <span className="text-[11px] text-slate-500">เลือกกรอกข้อมูลข้อใดข้อหนึ่ง</span>
+                <span className="text-[11px] text-teal-700 font-medium bg-teal-50 px-2 py-0.5 rounded-full border border-teal-200">
+                  เลือกข้อใดข้อหนึ่ง
+                </span>
               </div>
 
               {/* Segmented Radio selector for Employer Type */}
@@ -678,7 +693,7 @@ export const DepositForm: React.FC<DepositFormProps> = ({
                 <label className="block text-xs font-semibold text-slate-700">
                   เลือกประเภทผู้ยื่น <span className="text-red-500">*</span>
                 </label>
-                <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl border border-slate-200">
+                <div className="grid grid-cols-2 gap-2 p-1.5 bg-slate-100/90 rounded-2xl border border-slate-200/80 shadow-inner">
                   <button
                     type="button"
                     onClick={() => {
@@ -691,10 +706,10 @@ export const DepositForm: React.FC<DepositFormProps> = ({
                         return copy;
                       });
                     }}
-                    className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                    className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
                       formData.employerType === 'individual'
-                        ? 'bg-blue-600 text-white shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                        ? 'bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-md shadow-teal-600/30'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-white/70'
                     }`}
                   >
                     <User className="w-3.5 h-3.5" />
@@ -713,10 +728,10 @@ export const DepositForm: React.FC<DepositFormProps> = ({
                         return copy;
                       });
                     }}
-                    className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                    className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
                       formData.employerType === 'company'
-                        ? 'bg-blue-600 text-white shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                        ? 'bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-md shadow-teal-600/30'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-white/70'
                     }`}
                   >
                     <Building2 className="w-3.5 h-3.5" />
@@ -861,11 +876,13 @@ export const DepositForm: React.FC<DepositFormProps> = ({
           </div>
 
           {/* Section 3: รายการคนต่างด้าว & ยอดเงิน */}
-          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:border-slate-300 transition-colors flex flex-col justify-between">
+          <div className="bg-white rounded-2xl border border-slate-200/90 border-t-4 border-t-indigo-600 p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
             <div className="space-y-4">
-              <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-                <Users className="w-5 h-5 text-blue-600 shrink-0" />
-                <h2 className="text-base font-semibold text-slate-800">
+              <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+                <span className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold shadow-2xs">
+                  <Users className="w-4 h-4" />
+                </span>
+                <h2 className="text-base font-bold text-slate-800">
                   3. รายการคนต่างด้าว & ยอดเงิน
                 </h2>
               </div>
@@ -1053,18 +1070,20 @@ export const DepositForm: React.FC<DepositFormProps> = ({
                 </div>
               </div>
 
-              {/* ยอดรวมทั้งสิ้น Highlight Box matching image */}
-              <div className="bg-blue-50/70 border border-blue-200 rounded-xl p-4 shadow-sm">
-                <div className="flex items-baseline justify-between">
-                  <span className="text-xs sm:text-sm font-medium text-slate-700">
+              {/* ยอดรวมทั้งสิ้น Radiant Highlight Box */}
+              <div className="bg-gradient-to-br from-blue-700 via-indigo-700 to-blue-900 text-white rounded-2xl p-4.5 shadow-lg shadow-blue-700/20 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-xl pointer-events-none" />
+                <div className="flex items-baseline justify-between relative z-10">
+                  <span className="text-xs sm:text-sm font-semibold text-blue-100">
                     จำนวนเงินรวมทั้งสิ้น:
                   </span>
-                  <span className="text-xl sm:text-2xl font-bold text-blue-900 font-mono tracking-tight">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-white font-mono tracking-tight drop-shadow-xs">
                     {formatThaiCurrency(totalAmount)}
                   </span>
                 </div>
-                <div className="mt-2 pt-2 border-t border-blue-200/60 text-xs text-blue-700 font-medium">
-                  คำอ่าน: <span className="font-normal text-blue-800">{thaiBahtText}</span>
+                <div className="mt-2.5 pt-2.5 border-t border-white/20 text-xs text-blue-100 font-medium relative z-10 flex items-center gap-1.5 flex-wrap">
+                  <span className="text-blue-200">คำอ่าน:</span>
+                  <span className="font-bold text-amber-300 bg-black/20 px-2 py-0.5 rounded-md backdrop-blur-xs">{thaiBahtText}</span>
                 </div>
               </div>
 
@@ -1086,11 +1105,13 @@ export const DepositForm: React.FC<DepositFormProps> = ({
         </div>
 
         {/* Section 4: ข้อมูลเจ้าหน้าที่ผู้รับเงิน / สำนักงานจัดหางานที่รับคำขอชำระเงินค่าวางหลักประกัน (Full width row) */}
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:border-slate-300 transition-colors">
-          <div className="flex items-center pb-3 border-b border-slate-100 mb-4">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-blue-600 shrink-0" />
-              <h2 className="text-base font-semibold text-slate-800">
+        <div className="bg-white rounded-2xl border border-slate-200/90 border-t-4 border-t-amber-500 p-5 sm:p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center pb-3.5 border-b border-slate-100 mb-4">
+            <div className="flex items-center gap-2.5">
+              <span className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold shadow-2xs">
+                <ShieldCheck className="w-4 h-4" />
+              </span>
+              <h2 className="text-base font-bold text-slate-800">
                 4. ข้อมูลเจ้าหน้าที่ผู้รับเงิน / สำนักงานจัดหางานที่รับคำขอชำระเงินค่าวางหลักประกัน
               </h2>
             </div>
@@ -1226,9 +1247,9 @@ export const DepositForm: React.FC<DepositFormProps> = ({
           <button
             type="button"
             onClick={() => handleSubmit(false)}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white transition-all text-sm font-semibold shadow-md shadow-blue-500/20 cursor-pointer"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-3 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-800 text-white transition-all text-sm sm:text-base font-bold shadow-lg shadow-blue-600/30 cursor-pointer active:scale-98"
           >
-            <Check className="w-4 h-4 text-white" />
+            <Check className="w-5 h-5 text-white" />
             <span>บันทึกข้อมูลหลักประกัน</span>
           </button>
         </div>
