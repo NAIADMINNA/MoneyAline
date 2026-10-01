@@ -39,9 +39,14 @@ export default function App() {
       if (savedV2) {
         const parsed = JSON.parse(savedV2);
         if (Array.isArray(parsed)) {
-          // Filter out obsolete demo items if any
-          const cleaned = parsed.filter(r => r.id !== 'rec-002' && r.id !== 'rec-003');
-          return cleaned.length > 0 ? cleaned : INITIAL_RECORDS;
+          // Filter out obsolete demo items (rec-001, rec-002, rec-003)
+          const cleaned = parsed.filter(
+            r => r.id !== 'rec-001' && r.id !== 'rec-002' && r.id !== 'rec-003' && r.requestNumber !== '69-09-0006'
+          );
+          if (cleaned.length !== parsed.length) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
+          }
+          return cleaned;
         }
       }
 
@@ -50,16 +55,18 @@ export default function App() {
       if (savedV1) {
         const parsed = JSON.parse(savedV1);
         if (Array.isArray(parsed)) {
-          const cleaned = parsed.filter(r => r.id !== 'rec-002' && r.id !== 'rec-003');
+          const cleaned = parsed.filter(
+            r => r.id !== 'rec-001' && r.id !== 'rec-002' && r.id !== 'rec-003' && r.requestNumber !== '69-09-0006'
+          );
           localStorage.removeItem('doe_foreign_worker_deposits_v1');
           localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
-          return cleaned.length > 0 ? cleaned : INITIAL_RECORDS;
+          return cleaned;
         }
       }
     } catch (e) {
       console.error('Failed to load records from storage', e);
     }
-    return INITIAL_RECORDS;
+    return [];
   });
 
   const [selectedReceipt, setSelectedReceipt] = useState<DepositRecord | null>(null);
@@ -270,16 +277,25 @@ export default function App() {
 
   const [isRefreshingSheet, setIsRefreshingSheet] = useState(false);
 
-  // Auto-fetch latest records from Google Sheet on app startup
+  // Auto-fetch latest records from Google Sheet on app startup and when visiting stats or ledger
   useEffect(() => {
+    let isMounted = true;
     fetchRecordsFromSheet(accessToken)
       .then((pulled) => {
-        if (pulled && pulled.length > 0) {
-          setRecords(pulled);
+        if (isMounted) {
+          if (pulled && pulled.length > 0) {
+            setRecords(pulled);
+          } else if (accessToken) {
+            setRecords([]);
+          }
         }
       })
       .catch(() => {});
-  }, [accessToken]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [accessToken, activeTab]);
 
   const handleRefreshSheet = async () => {
     setIsRefreshingSheet(true);

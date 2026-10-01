@@ -158,37 +158,5 @@ export const DEFAULT_FORM_DATA: FormDataState = {
   employmentOffice: 'สำนักงานจัดหางานกรุงเทพมหานครพื้นที่ 1',
 };
 
-// Initial records: strictly 1 actual record matching the database
-export const INITIAL_RECORDS: DepositRecord[] = [
-  {
-    id: 'rec-001',
-    createdAt: '2026-09-30T10:15:00.000Z',
-    requestNumber: '69-09-0006',
-    receiptBook: '012',
-    receiptNumber: '000546',
-    paymentDate: '2026-09-30',
-    paymentChannel: 'โอนเงิน / KTB Corporate Online',
-    employerType: 'individual',
-    idCardNumber: '3-1005-00421-12-8',
-    employerName: 'นายสมชาย ใจดี',
-    phoneNumber: '081-234-5678',
-    workplaceAddress: 'แขวงคลองเตย เขตคลองเตย กรุงเทพมหานคร',
-    alienCategory: 'MOU (2 ปีแรก)',
-    alienCount: 1,
-    ratePerPerson: 1000,
-    totalAmount: 1000,
-    thaiBahtText: 'หนึ่งพันบาทถ้วน',
-    notes: 'อ้างอิงสัญญาจ้างเลขที่ MOU-69-0041 แรงงานสัญชาติเมียนมา',
-    workers: [
-      {
-        id: 'w-1',
-        idCardNumber: '0-0012-34567-89-1',
-        name: 'AUNG SAN',
-        nationality: 'เมียนมา (Myanmar)',
-      }
-    ],
-    officerName: 'นายอดิศร วงศ์เจริญรัตน์',
-    officerPosition: 'นักวิชาการแรงงานปฏิบัติการ',
-    employmentOffice: 'สำนักงานจัดหางานกรุงเทพมหานครพื้นที่ 6',
-  },
-];
+// Initial records: start empty so statistics are 100% accurate to the real database
+export const INITIAL_RECORDS: DepositRecord[] = [];

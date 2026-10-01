@@ -444,24 +444,28 @@ export const DepositStats: React.FC<DepositStatsProps> = ({
             <span className="text-xs text-indigo-700 font-semibold">จำนวน (คน)</span>
           </h4>
           <div className="space-y-3.5">
-            {Object.entries(nationalityStats).map(([nat, count]) => {
-              const totalNatWorkers = Object.values(nationalityStats).reduce((a, b) => a + b, 0);
-              const pct = totalNatWorkers > 0 ? (count / totalNatWorkers) * 100 : 0;
-              return (
-                <div key={nat} className="space-y-1.5">
-                  <div className="flex items-center justify-between text-xs text-slate-700">
-                    <span className="font-semibold truncate max-w-[200px]">{nat}</span>
-                    <span className="font-mono font-bold text-indigo-950">{formatNumber(count)} คน <span className="text-slate-400 font-normal">({pct.toFixed(1)}%)</span></span>
+            {Object.keys(nationalityStats).length === 0 ? (
+              <p className="text-xs text-slate-400 py-3 text-center">ไม่มีข้อมูลแรงงานในระบบ</p>
+            ) : (
+              Object.entries(nationalityStats).map(([nat, count]) => {
+                const totalNatWorkers = Object.values(nationalityStats).reduce((a, b) => a + b, 0);
+                const pct = totalNatWorkers > 0 ? (count / totalNatWorkers) * 100 : 0;
+                return (
+                  <div key={nat} className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs text-slate-700">
+                      <span className="font-semibold truncate max-w-[200px]">{nat}</span>
+                      <span className="font-mono font-bold text-indigo-950">{formatNumber(count)} คน <span className="text-slate-400 font-normal">({pct.toFixed(1)}%)</span></span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden p-0.5">
+                      <div 
+                        className="bg-gradient-to-r from-indigo-500 via-purple-500 to-violet-500 h-full rounded-full transition-all duration-500" 
+                        style={{ width: `${Math.max(pct, 2)}%` }} 
+                      />
+                    </div>
                   </div>
-                  <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden p-0.5">
-                    <div 
-                      className="bg-gradient-to-r from-indigo-500 via-purple-500 to-violet-500 h-full rounded-full transition-all duration-500" 
-                      style={{ width: `${Math.max(pct, 2)}%` }} 
-                    />
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </div>
 
@@ -477,23 +481,27 @@ export const DepositStats: React.FC<DepositStatsProps> = ({
             <span className="text-xs text-blue-700 font-semibold">แรงงาน (คน)</span>
           </h4>
           <div className="space-y-3.5">
-            {Object.entries(categoryStats).map(([cat, count]) => {
-              const pct = totalWorkers > 0 ? (count / totalWorkers) * 100 : 0;
-              return (
-                <div key={cat} className="space-y-1.5">
-                  <div className="flex items-center justify-between text-xs text-slate-700">
-                    <span className="font-semibold truncate max-w-[200px]">{cat}</span>
-                    <span className="font-mono font-bold text-blue-950">{formatNumber(count)} คน <span className="text-slate-400 font-normal">({pct.toFixed(1)}%)</span></span>
+            {Object.keys(categoryStats).length === 0 ? (
+              <p className="text-xs text-slate-400 py-3 text-center">ไม่มีข้อมูลประเภทแรงงานในระบบ</p>
+            ) : (
+              Object.entries(categoryStats).map(([cat, count]) => {
+                const pct = totalWorkers > 0 ? (count / totalWorkers) * 100 : 0;
+                return (
+                  <div key={cat} className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs text-slate-700">
+                      <span className="font-semibold truncate max-w-[200px]">{cat}</span>
+                      <span className="font-mono font-bold text-blue-950">{formatNumber(count)} คน <span className="text-slate-400 font-normal">({pct.toFixed(1)}%)</span></span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden p-0.5">
+                      <div 
+                        className="bg-gradient-to-r from-blue-500 to-cyan-500 h-full rounded-full transition-all duration-500" 
+                        style={{ width: `${Math.max(pct, 2)}%` }} 
+                      />
+                    </div>
                   </div>
-                  <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden p-0.5">
-                    <div 
-                      className="bg-gradient-to-r from-blue-500 to-cyan-500 h-full rounded-full transition-all duration-500" 
-                      style={{ width: `${Math.max(pct, 2)}%` }} 
-                    />
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </div>
 
