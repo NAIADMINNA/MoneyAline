@@ -68,11 +68,20 @@ export default function App() {
   // Google Auth & Sheets Access Token (Persistently locked)
   const [user, setUser] = useState<User | null>(() => getSavedUser());
   const [accessToken, setAccessToken] = useState<string | null>(() => getSavedAccessToken());
-  const [isAdminUnlocked, setIsAdminUnlocked] = useState(false);
+  const [isAdminUnlocked, setIsAdminUnlocked] = useState(() => {
+    try {
+      return sessionStorage.getItem('doe_admin_unlocked') === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showWebhookModal, setShowWebhookModal] = useState(false);
 
   const handlePasswordSuccess = () => {
+    try {
+      sessionStorage.setItem('doe_admin_unlocked', 'true');
+    } catch {}
     setIsAdminUnlocked(true);
     setShowPasswordModal(false);
     setShowWebhookModal(true);
@@ -106,6 +115,16 @@ export default function App() {
         showToast(`ล็อคการเชื่อมต่อ Google สำเร็จ (${result.user.displayName || result.user.email}) ระบบจะจำการเชื่อมต่อนี้ไว้ตลอด`);
       }
     } catch (err: any) {
+      const errorCode = err?.code || '';
+      const errorMsg = err?.message || '';
+      if (
+        errorCode === 'auth/popup-closed-by-user' ||
+        errorCode === 'auth/cancelled-popup-request' ||
+        errorMsg.includes('popup-closed-by-user') ||
+        errorMsg.includes('cancelled-popup-request')
+      ) {
+        return;
+      }
       console.error('Google Sign in error:', err);
       showToast(`เข้าสู่ระบบไม่สำเร็จ: ${err.message || 'โปรดลองใหม่อีกครั้ง'}`);
     }
@@ -455,6 +474,9 @@ export default function App() {
           }}
           isAdminUnlocked={isAdminUnlocked}
           onLockAdmin={() => {
+            try {
+              sessionStorage.removeItem('doe_admin_unlocked');
+            } catch {}
             setIsAdminUnlocked(false);
             setShowWebhookModal(false);
             showToast('ซ่อนหัวข้อการเชื่อมต่อเรียบร้อยแล้ว');

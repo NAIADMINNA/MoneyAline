@@ -40,6 +40,8 @@ interface DepositFormProps {
   hasWebhook?: boolean;
 }
 
+const LAST_EMPLOYER_TYPE_KEY = 'doe_last_employer_type';
+
 export const DepositForm: React.FC<DepositFormProps> = ({ 
   onSave, 
   initialData, 
@@ -50,12 +52,22 @@ export const DepositForm: React.FC<DepositFormProps> = ({
 }) => {
   const [formData, setFormData] = useState<FormDataState>(() => {
     const init = initialData || DEFAULT_FORM_DATA;
+    let preferredType = init.employerType || 'individual';
+    try {
+      const savedType = localStorage.getItem(LAST_EMPLOYER_TYPE_KEY);
+      if (savedType === 'individual' || savedType === 'company') {
+        preferredType = savedType;
+      }
+    } catch {
+      // ignore
+    }
     return {
       ...init,
-      individualIdCard: init.individualIdCard || (init.employerType === 'individual' ? init.idCardNumber : ''),
-      individualName: init.individualName || (init.employerType === 'individual' ? init.employerName : ''),
-      companyId: init.companyId || (init.employerType === 'company' ? init.idCardNumber : ''),
-      companyName: init.companyName || (init.employerType === 'company' ? init.employerName : ''),
+      employerType: preferredType,
+      individualIdCard: init.individualIdCard || (preferredType === 'individual' ? init.idCardNumber : ''),
+      individualName: init.individualName || (preferredType === 'individual' ? init.employerName : ''),
+      companyId: init.companyId || (preferredType === 'company' ? init.idCardNumber : ''),
+      companyName: init.companyName || (preferredType === 'company' ? init.employerName : ''),
     };
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -689,21 +701,27 @@ export const DepositForm: React.FC<DepositFormProps> = ({
                     2. ข้อมูลนายจ้าง / สถานประกอบการ
                   </h2>
                 </div>
-                <span className="text-[11px] text-teal-700 font-medium bg-teal-50 px-2 py-0.5 rounded-full border border-teal-200">
-                  เลือกข้อใดข้อหนึ่ง
+                <span className="text-[11px] text-teal-700 font-medium bg-teal-50 px-2.5 py-0.5 rounded-full border border-teal-200">
+                  {formData.employerType === 'company' ? 'นิติบุคคล / บริษัท' : 'บุคคลธรรมดา'} (เลือกให้อัตโนมัติ)
                 </span>
               </div>
 
               {/* Segmented Radio selector for Employer Type */}
               <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-slate-700">
-                  เลือกประเภทผู้ยื่น <span className="text-red-500">*</span>
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-semibold text-slate-700">
+                    เลือกประเภทผู้ยื่น <span className="text-red-500">*</span>
+                  </label>
+                  <span className="text-[10px] text-slate-400">
+                    (ระบบจำค่าไว้ ไม่จำเป็นต้องกดซ้ำ)
+                  </span>
+                </div>
                 <div className="grid grid-cols-2 gap-2 p-1.5 bg-slate-100/90 rounded-2xl border border-slate-200/80 shadow-inner">
                   <button
                     type="button"
                     onClick={() => {
                       setFormData(prev => ({ ...prev, employerType: 'individual' }));
+                      try { localStorage.setItem(LAST_EMPLOYER_TYPE_KEY, 'individual'); } catch {}
                       setErrors(prev => {
                         const copy = { ...prev };
                         delete copy.companyId;
@@ -714,7 +732,7 @@ export const DepositForm: React.FC<DepositFormProps> = ({
                     }}
                     className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
                       formData.employerType === 'individual'
-                        ? 'bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-md shadow-teal-600/30'
+                        ? 'bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-md shadow-teal-600/30 ring-2 ring-teal-400/40'
                         : 'text-slate-600 hover:text-slate-900 hover:bg-white/70'
                     }`}
                   >
@@ -726,6 +744,7 @@ export const DepositForm: React.FC<DepositFormProps> = ({
                     type="button"
                     onClick={() => {
                       setFormData(prev => ({ ...prev, employerType: 'company' }));
+                      try { localStorage.setItem(LAST_EMPLOYER_TYPE_KEY, 'company'); } catch {}
                       setErrors(prev => {
                         const copy = { ...prev };
                         delete copy.individualIdCard;
@@ -736,7 +755,7 @@ export const DepositForm: React.FC<DepositFormProps> = ({
                     }}
                     className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
                       formData.employerType === 'company'
-                        ? 'bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-md shadow-teal-600/30'
+                        ? 'bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-md shadow-teal-600/30 ring-2 ring-teal-400/40'
                         : 'text-slate-600 hover:text-slate-900 hover:bg-white/70'
                     }`}
                   >

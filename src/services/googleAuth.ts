@@ -124,6 +124,24 @@ export const googleSignIn = async (forceConsent = false): Promise<{ user: User; 
 
     return { user: result.user, accessToken: cachedAccessToken };
   } catch (error: any) {
+    const errorCode = error?.code || '';
+    const errorMsg = error?.message || '';
+
+    // Gracefully handle user closing or cancelling the popup window
+    if (
+      errorCode === 'auth/popup-closed-by-user' ||
+      errorCode === 'auth/cancelled-popup-request' ||
+      errorMsg.includes('popup-closed-by-user') ||
+      errorMsg.includes('cancelled-popup-request')
+    ) {
+      // User closed the popup window voluntarily; not a runtime failure
+      return null;
+    }
+
+    if (errorCode === 'auth/popup-blocked' || errorMsg.includes('popup-blocked')) {
+      throw new Error('เบราว์เซอร์บล็อกหน้าต่างเข้าสู่ระบบ กรุณาอนุญาตป๊อปอัป (Allow Popups) ในแถบที่อยู่ของเบราว์เซอร์แล้วลองใหม่อีกครั้ง');
+    }
+
     console.error('Google Sign in error:', error);
     throw error;
   } finally {
