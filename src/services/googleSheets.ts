@@ -419,14 +419,23 @@ export async function fetchRecordsFromSheet(
   const data = await res.json();
   const rows = data.values || [];
 
-  return rows.map((row: any[], index: number): DepositRecord => {
+  // Filter out empty rows or rows where contents were cleared/deleted in Google Sheet
+  const validRows = rows.filter((row: any[]) => {
+    if (!row || !Array.isArray(row) || row.length === 0) return false;
+    return row.some((cell: any, idx: number) => {
+      if (idx === 0) return false; // ignore sequential row number formula/value
+      return cell !== undefined && cell !== null && String(cell).trim() !== '' && String(cell).trim() !== '-';
+    });
+  });
+
+  return validRows.map((row: any[], index: number): DepositRecord => {
     const ids = (row[14] || '').split('\n').map((s: string) => s.replace(/^\d+\.\s*/, '').trim()).filter(Boolean);
     const names = (row[15] || '').split('\n').map((s: string) => s.replace(/^\d+\.\s*/, '').trim()).filter(Boolean);
     const nats = (row[16] || '').split('\n').map((s: string) => s.replace(/^\d+\.\s*/, '').trim()).filter(Boolean);
     
-    const count = parseInt(row[10], 10) || 1;
+    const count = parseInt(String(row[10] || '').replace(/\D/g, ''), 10) || Math.max(names.length, ids.length, 1);
     const workers = [];
-    for (let i = 0; i < Math.max(names.length, ids.length, 1); i++) {
+    for (let i = 0; i < Math.max(names.length, ids.length, count); i++) {
       if (names[i] || ids[i]) {
         workers.push({
           id: `w-sheet-${index}-${i}`,
@@ -436,6 +445,10 @@ export async function fetchRecordsFromSheet(
         });
       }
     }
+
+    const rawAmt = String(row[12] || '').replace(/,/g, '').trim();
+    const parsedAmt = parseFloat(rawAmt);
+    const totalAmount = !isNaN(parsedAmt) && parsedAmt > 0 ? parsedAmt : (count * 1000);
 
     return {
       id: `sheet-rec-${index}-${row[2] || Date.now()}`,
@@ -449,8 +462,8 @@ export async function fetchRecordsFromSheet(
       phoneNumber: row[8] || '',
       alienCategory: row[9] || '',
       alienCount: count,
-      ratePerPerson: parseInt(row[11], 10) || 1000,
-      totalAmount: parseInt(row[12], 10) || 1000,
+      ratePerPerson: parseInt(String(row[11] || '').replace(/\D/g, ''), 10) || 1000,
+      totalAmount,
       thaiBahtText: row[13] || '',
       workers,
       employmentOffice: row[17] || '',

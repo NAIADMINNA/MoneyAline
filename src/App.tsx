@@ -248,11 +248,11 @@ export default function App() {
     setIsRefreshingSheet(true);
     try {
       const pulled = await fetchRecordsFromSheet(accessToken);
-      if (pulled && pulled.length > 0) {
-        setRecords(pulled);
+      setRecords(pulled);
+      if (pulled.length > 0) {
         showToast(`ดึงข้อมูลจาก Google Sheet สำเร็จ: ปรับปรุงตรงกับฐานข้อมูล (${pulled.length} รายการ) เรียบร้อยแล้ว`);
       } else {
-        showToast('ไม่พบรายการข้อมูลใน Google Sheet หรือยังไม่มีการบันทึกข้อมูล');
+        showToast('ซิงค์กับ Google Sheet สำเร็จ: ขณะนี้ไม่มีข้อมูลในสเปรดชีต (0 รายการ) ตัวเลขสถิติจึงถูกรีเซ็ตเป็น 0');
       }
     } catch (err: any) {
       showToast(`ดึงข้อมูลไม่สำเร็จ: ${err.message || 'โปรดลองใหม่'}`);
@@ -261,17 +261,47 @@ export default function App() {
     }
   };
 
+  // Auto-sync when user returns to this browser tab from Google Sheets
+  useEffect(() => {
+    const handleWindowFocus = () => {
+      if (accessToken) {
+        fetchRecordsFromSheet(accessToken)
+          .then((pulled) => {
+            setRecords(pulled);
+          })
+          .catch(() => {});
+      }
+    };
+
+    window.addEventListener('focus', handleWindowFocus);
+    return () => {
+      window.removeEventListener('focus', handleWindowFocus);
+    };
+  }, [accessToken]);
+
+  // Auto-sync when switching to the stats tab
+  useEffect(() => {
+    if (activeTab === 'stats' && accessToken) {
+      fetchRecordsFromSheet(accessToken)
+        .then((pulled) => {
+          setRecords(pulled);
+        })
+        .catch(() => {});
+    }
+  }, [activeTab, accessToken]);
+
   const handleDeleteRecord = (id: string) => {
     setRecords(prev => prev.filter(r => r.id !== id));
     showToast('ลบรายการบันทึกเรียบร้อยแล้ว');
   };
 
   const handlePullFromSheet = (sheetRecords: DepositRecord[]) => {
-    if (sheetRecords && sheetRecords.length > 0) {
-      setRecords(sheetRecords);
-      showToast(`ดึงข้อมูลจาก Google Sheet สำเร็จ: ปรับปรุงข้อมูลตรงกับฐานข้อมูล (${sheetRecords.length} รายการ) เรียบร้อยแล้ว`);
+    const safeRecords = sheetRecords || [];
+    setRecords(safeRecords);
+    if (safeRecords.length > 0) {
+      showToast(`ดึงข้อมูลจาก Google Sheet สำเร็จ: ปรับปรุงตรงกับฐานข้อมูล (${safeRecords.length} รายการ) เรียบร้อยแล้ว`);
     } else {
-      showToast('ไม่พบรายการข้อมูลใน Google Sheet หรือยังไม่มีการบันทึกข้อมูล');
+      showToast('ซิงค์กับ Google Sheet สำเร็จ: ขณะนี้ไม่มีข้อมูลในสเปรดชีต (0 รายการ) ตัวเลขสถิติจึงถูกรีเซ็ตเป็น 0');
     }
   };
 
