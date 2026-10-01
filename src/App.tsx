@@ -21,19 +21,38 @@ import {
   batchAppendRecordsToSheet, 
   getAppsScriptUrl, 
   appendRecordViaAppsScript,
-  batchAppendViaAppsScript
+  batchAppendViaAppsScript,
+  fetchRecordsFromSheet
 } from './services/googleSheets';
 import { User } from 'firebase/auth';
 
-const STORAGE_KEY = 'doe_foreign_worker_deposits_v1';
+const STORAGE_KEY = 'doe_foreign_worker_deposits_v2';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'form' | 'ledger' | 'stats'>('form');
   const [records, setRecords] = useState<DepositRecord[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        return JSON.parse(saved);
+      // 1. Try modern storage key
+      const savedV2 = localStorage.getItem(STORAGE_KEY);
+      if (savedV2) {
+        const parsed = JSON.parse(savedV2);
+        if (Array.isArray(parsed)) {
+          // Filter out obsolete demo items if any
+          const cleaned = parsed.filter(r => r.id !== 'rec-002' && r.id !== 'rec-003');
+          return cleaned.length > 0 ? cleaned : INITIAL_RECORDS;
+        }
+      }
+
+      // 2. Migrate legacy storage key if present, stripping obsolete demo mock items
+      const savedV1 = localStorage.getItem('doe_foreign_worker_deposits_v1');
+      if (savedV1) {
+        const parsed = JSON.parse(savedV1);
+        if (Array.isArray(parsed)) {
+          const cleaned = parsed.filter(r => r.id !== 'rec-002' && r.id !== 'rec-003');
+          localStorage.removeItem('doe_foreign_worker_deposits_v1');
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
+          return cleaned.length > 0 ? cleaned : INITIAL_RECORDS;
+        }
       }
     } catch (e) {
       console.error('Failed to load records from storage', e);
@@ -218,22 +237,42 @@ export default function App() {
     }
   };
 
+  const [isRefreshingSheet, setIsRefreshingSheet] = useState(false);
+
+  const handleRefreshSheet = async () => {
+    if (!accessToken) {
+      showToast('กรุณากดเชื่อมต่อ Google Sheets ด้านบนก่อนดึงข้อมูล');
+      await handleGoogleLogin();
+      return;
+    }
+    setIsRefreshingSheet(true);
+    try {
+      const pulled = await fetchRecordsFromSheet(accessToken);
+      if (pulled && pulled.length > 0) {
+        setRecords(pulled);
+        showToast(`ดึงข้อมูลจาก Google Sheet สำเร็จ: ปรับปรุงตรงกับฐานข้อมูล (${pulled.length} รายการ) เรียบร้อยแล้ว`);
+      } else {
+        showToast('ไม่พบรายการข้อมูลใน Google Sheet หรือยังไม่มีการบันทึกข้อมูล');
+      }
+    } catch (err: any) {
+      showToast(`ดึงข้อมูลไม่สำเร็จ: ${err.message || 'โปรดลองใหม่'}`);
+    } finally {
+      setIsRefreshingSheet(false);
+    }
+  };
+
   const handleDeleteRecord = (id: string) => {
     setRecords(prev => prev.filter(r => r.id !== id));
     showToast('ลบรายการบันทึกเรียบร้อยแล้ว');
   };
 
   const handlePullFromSheet = (sheetRecords: DepositRecord[]) => {
-    setRecords((prev) => {
-      const existingReqNums = new Set(prev.map((r) => r.requestNumber));
-      const newItems = sheetRecords.filter((r) => !existingReqNums.has(r.requestNumber));
-      if (newItems.length === 0) {
-        showToast('ข้อมูลในเครื่องเป็นปัจจุบันแล้ว');
-        return prev;
-      }
-      showToast(`เพิ่มข้อมูลใหม่จาก Google Sheet เข้ามา ${newItems.length} รายการ`);
-      return [...newItems, ...prev];
-    });
+    if (sheetRecords && sheetRecords.length > 0) {
+      setRecords(sheetRecords);
+      showToast(`ดึงข้อมูลจาก Google Sheet สำเร็จ: ปรับปรุงข้อมูลตรงกับฐานข้อมูล (${sheetRecords.length} รายการ) เรียบร้อยแล้ว`);
+    } else {
+      showToast('ไม่พบรายการข้อมูลใน Google Sheet หรือยังไม่มีการบันทึกข้อมูล');
+    }
   };
 
   return (
@@ -363,7 +402,13 @@ export default function App() {
                 </p>
               </div>
             </div>
-            <DepositStats records={records} onNotify={showToast} />
+            <DepositStats 
+              records={records} 
+              onNotify={showToast} 
+              accessToken={accessToken}
+              onRefreshFromSheet={accessToken ? handleRefreshSheet : undefined}
+              isRefreshing={isRefreshingSheet}
+            />
           </div>
         )}
       </main>

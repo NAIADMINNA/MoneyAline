@@ -12,7 +12,8 @@ import {
   Filter,
   Check,
   Layers,
-  Sparkles
+  Sparkles,
+  RefreshCw
 } from 'lucide-react';
 import { DepositRecord } from '../types/deposit';
 import { formatThaiCurrency, formatNumber } from '../utils/thaiBahtText';
@@ -22,9 +23,18 @@ import { BANGKOK_EMPLOYMENT_OFFICES, PROVINCIAL_EMPLOYMENT_OFFICES } from '../da
 interface DepositStatsProps {
   records: DepositRecord[];
   onNotify?: (msg: string) => void;
+  accessToken?: string | null;
+  onRefreshFromSheet?: () => Promise<void>;
+  isRefreshing?: boolean;
 }
 
-export const DepositStats: React.FC<DepositStatsProps> = ({ records, onNotify }) => {
+export const DepositStats: React.FC<DepositStatsProps> = ({ 
+  records, 
+  onNotify, 
+  accessToken, 
+  onRefreshFromSheet,
+  isRefreshing = false 
+}) => {
   // Distinct offices currently found in data records
   const activeOfficesInData = useMemo(() => {
     const list = Array.from(new Set(records.map(r => (r.employmentOffice || '').trim()).filter(Boolean)));
@@ -202,6 +212,25 @@ export const DepositStats: React.FC<DepositStatsProps> = ({ records, onNotify })
                 </div>
               </div>
             </div>
+
+            {/* Pull from Google Sheet Button (to keep stats 100% matched with online database) */}
+            {onRefreshFromSheet && (
+              <div className="sm:self-end">
+                <label className="hidden sm:block text-[11px] font-semibold text-transparent mb-1 select-none">
+                  Sync
+                </label>
+                <button
+                  type="button"
+                  onClick={onRefreshFromSheet}
+                  disabled={isRefreshing}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-white hover:bg-emerald-50 active:bg-emerald-100 border-2 border-emerald-300 text-emerald-800 text-xs font-bold rounded-xl shadow-xs transition cursor-pointer disabled:opacity-50"
+                  title="ดึงข้อมูลคำขอล่าสุดจาก Google Sheet เพื่ออัปเดตสถิติให้ตรงกับฐานข้อมูลจริงทันที"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 text-emerald-600 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  <span>{isRefreshing ? 'กำลังดึง...' : 'ดึงข้อมูลจาก Google Sheet'}</span>
+                </button>
+              </div>
+            )}
 
             {/* Export CSV Button */}
             <div className="sm:self-end">

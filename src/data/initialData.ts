@@ -158,7 +158,7 @@ export const DEFAULT_FORM_DATA: FormDataState = {
   employmentOffice: 'สำนักงานจัดหางานกรุงเทพมหานครพื้นที่ 1',
 };
 
-// Seed records with the exact one from the image plus 2 realistic others
+// Initial records: strictly 1 actual record matching the database
 export const INITIAL_RECORDS: DepositRecord[] = [
   {
     id: 'rec-001',
@@ -190,79 +190,5 @@ export const INITIAL_RECORDS: DepositRecord[] = [
     officerName: 'นายอดิศร วงศ์เจริญรัตน์',
     officerPosition: 'นักวิชาการแรงงานปฏิบัติการ',
     employmentOffice: 'สำนักงานจัดหางานกรุงเทพมหานครพื้นที่ 6',
-  },
-  {
-    id: 'rec-002',
-    createdAt: '2026-09-29T14:30:00.000Z',
-    requestNumber: '69-09-0005',
-    receiptBook: '012',
-    receiptNumber: '000545',
-    paymentDate: '2026-09-29',
-    paymentChannel: 'โอนเงิน / KTB Corporate Online',
-    employerType: 'company',
-    idCardNumber: '0-1055-58123-45-1',
-    employerName: 'บริษัท ไทยฟู้ดส์ โลจิสติกส์ จำกัด',
-    phoneNumber: '02-714-9988',
-    workplaceAddress: '88/12 ถนนสุขุมวิท 71 แขวงพระโขนงเหนือ เขตวัฒนา กรุงเทพมหานคร',
-    alienCategory: 'MOU (ต่ออายุ 2 ปี)',
-    alienCount: 2,
-    ratePerPerson: 1000,
-    totalAmount: 2000,
-    thaiBahtText: numberToThaiBahtText(2000),
-    notes: 'โอนผ่าน KTB Corporate รหัสอ้างอิง KTB9812404',
-    workers: [
-      {
-        id: 'w-2-1',
-        idCardNumber: '0-0023-45678-90-2',
-        name: 'นายโซ วิน (Soe Win)',
-        nationality: 'เมียนมา (Myanmar)',
-      },
-      {
-        id: 'w-2-2',
-        idCardNumber: '0-0023-45678-90-3',
-        name: 'นางสาวทีดา (Thida)',
-        nationality: 'เมียนมา (Myanmar)',
-      }
-    ],
-    officerName: 'นายอดิศร วงศ์เจริญรัตน์',
-    officerPosition: 'นักวิชาการแรงงานปฏิบัติการ',
-    employmentOffice: 'สจก. 6 (คลองเตย วัฒนา สวนหลวง)',
-  },
-  {
-    id: 'rec-003',
-    createdAt: '2026-09-28T11:05:00.000Z',
-    requestNumber: '69-09-0004',
-    receiptBook: '012',
-    receiptNumber: '000544',
-    paymentDate: '2026-09-28',
-    paymentChannel: 'แคชเชียร์เช็ค (Cashier Cheque)',
-    employerType: 'company',
-    idCardNumber: '0-1055-45089-22-3',
-    employerName: 'ห้างหุ้นส่วนจำกัด สวนหลวงก่อสร้าง 2020',
-    phoneNumber: '089-765-4321',
-    workplaceAddress: '45 ถนนพัฒนาการ แขวงสวนหลวง เขตสวนหลวง กรุงเทพมหานคร',
-    alienCategory: 'มติ ครม. 24 ก.ย. 2567',
-    alienCount: 2,
-    ratePerPerson: 1000,
-    totalAmount: 2000,
-    thaiBahtText: numberToThaiBahtText(2000),
-    notes: 'เช็คธนาคารกรุงเทพ เลขที่ BBL-7740192',
-    workers: [
-      {
-        id: 'w-3-1',
-        idCardNumber: '0-0034-56789-01-4',
-        name: 'นายวันนา เฮง (Vanna Heng)',
-        nationality: 'กัมพูชา (Cambodia)',
-      },
-      {
-        id: 'w-3-2',
-        idCardNumber: '0-0034-56789-01-5',
-        name: 'นายสมบัติ พอน (Sombath Phon)',
-        nationality: 'กัมพูชา (Cambodia)',
-      }
-    ],
-    officerName: 'นางสาวพิมพา พรหมจรรย์',
-    officerPosition: 'เจ้าพนักงานแรงงานชำนาญงาน',
-    employmentOffice: 'สจก. 6 (คลองเตย วัฒนา สวนหลวง)',
   },
 ];
