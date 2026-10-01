@@ -13,7 +13,8 @@ import {
   Check,
   Layers,
   Sparkles,
-  RefreshCw
+  RefreshCw,
+  RotateCcw
 } from 'lucide-react';
 import { DepositRecord } from '../types/deposit';
 import { formatThaiCurrency, formatNumber } from '../utils/thaiBahtText';
@@ -26,6 +27,7 @@ interface DepositStatsProps {
   accessToken?: string | null;
   onRefreshFromSheet?: () => Promise<void>;
   isRefreshing?: boolean;
+  onClearAllRecords?: () => void;
 }
 
 export const DepositStats: React.FC<DepositStatsProps> = ({ 
@@ -33,7 +35,8 @@ export const DepositStats: React.FC<DepositStatsProps> = ({
   onNotify, 
   accessToken, 
   onRefreshFromSheet,
-  isRefreshing = false 
+  isRefreshing = false,
+  onClearAllRecords
 }) => {
   // Distinct offices currently found in data records
   const activeOfficesInData = useMemo(() => {
@@ -213,29 +216,48 @@ export const DepositStats: React.FC<DepositStatsProps> = ({
               </div>
             </div>
 
-            {/* Pull from Google Sheet Button (to keep stats 100% matched with online database) */}
-            {onRefreshFromSheet && (
+            {/* Pull from Google Sheet Button (ALWAYS visible to sync with online sheet) */}
+            <div className="sm:self-end">
+              <label className="block text-[11px] font-bold text-blue-900 mb-1 flex items-center gap-1">
+                <RefreshCw className="w-3.5 h-3.5 text-blue-600" />
+                <span>ดึงข้อมูลฐานข้อมูล:</span>
+              </label>
+              <button
+                type="button"
+                onClick={onRefreshFromSheet}
+                disabled={isRefreshing}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-800 active:scale-95 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-600/25 transition cursor-pointer disabled:opacity-50"
+                title="คลิกเพื่อดึงข้อมูลล่าสุดจาก Google Sheet เพื่ออัปเดตสถิติให้ตรงกับฐานข้อมูลจริงทันที"
+              >
+                <RefreshCw className={`w-4 h-4 text-white ${isRefreshing ? 'animate-spin' : ''}`} />
+                <span>{isRefreshing ? 'กำลังดึงข้อมูล...' : 'ดึงข้อมูลจาก Google Sheet'}</span>
+              </button>
+            </div>
+
+            {/* Clear / Reset Local Records Button */}
+            {onClearAllRecords && records.length > 0 && (
               <div className="sm:self-end">
-                <label className="hidden sm:block text-[11px] font-semibold text-transparent mb-1 select-none">
-                  Sync
+                <label className="block text-[11px] font-bold text-rose-800 mb-1 flex items-center gap-1">
+                  <RotateCcw className="w-3.5 h-3.5 text-rose-600" />
+                  <span>รีเซ็ตสถิติ:</span>
                 </label>
                 <button
                   type="button"
-                  onClick={onRefreshFromSheet}
-                  disabled={isRefreshing}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-white hover:bg-emerald-50 active:bg-emerald-100 border-2 border-emerald-300 text-emerald-800 text-xs font-bold rounded-xl shadow-xs transition cursor-pointer disabled:opacity-50"
-                  title="ดึงข้อมูลคำขอล่าสุดจาก Google Sheet เพื่ออัปเดตสถิติให้ตรงกับฐานข้อมูลจริงทันที"
+                  onClick={onClearAllRecords}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 border border-rose-300 text-xs font-bold rounded-xl shadow-xs transition cursor-pointer"
+                  title="หากลบข้อมูลใน Google Sheet แล้วต้องการให้ตัวเลขสถิติในระบบเป็น 0 ทันที"
                 >
-                  <RefreshCw className={`w-3.5 h-3.5 text-emerald-600 ${isRefreshing ? 'animate-spin' : ''}`} />
-                  <span>{isRefreshing ? 'กำลังดึง...' : 'ดึงข้อมูลจาก Google Sheet'}</span>
+                  <RotateCcw className="w-3.5 h-3.5 text-rose-600" />
+                  <span>รีเซ็ตเป็น 0</span>
                 </button>
               </div>
             )}
 
             {/* Export CSV Button */}
             <div className="sm:self-end">
-              <label className="hidden sm:block text-[11px] font-semibold text-transparent mb-1 select-none">
-                Action
+              <label className="block text-[11px] font-bold text-emerald-900 mb-1 flex items-center gap-1">
+                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                <span>ดาวน์โหลด:</span>
               </label>
               <button
                 type="button"

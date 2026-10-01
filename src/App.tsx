@@ -5,7 +5,8 @@ import {
   Building2, 
   CheckCircle,
   HelpCircle,
-  Download
+  Download,
+  Settings2
 } from 'lucide-react';
 import { DepositRecord } from './types/deposit';
 import { INITIAL_RECORDS } from './data/initialData';
@@ -15,6 +16,7 @@ import { DepositLedger } from './components/DepositLedger';
 import { DepositStats } from './components/DepositStats';
 import { GoogleSheetsBar } from './components/GoogleSheetsBar';
 import { OfflineIndicator } from './components/OfflineIndicator';
+import { WebhookPasswordModal } from './components/WebhookPasswordModal';
 import { initAuth, googleSignIn, logoutGoogle, getSavedAccessToken, getSavedUser } from './services/googleAuth';
 import { 
   appendRecordToSheet, 
@@ -66,6 +68,16 @@ export default function App() {
   // Google Auth & Sheets Access Token (Persistently locked)
   const [user, setUser] = useState<User | null>(() => getSavedUser());
   const [accessToken, setAccessToken] = useState<string | null>(() => getSavedAccessToken());
+  const [isAdminUnlocked, setIsAdminUnlocked] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showWebhookModal, setShowWebhookModal] = useState(false);
+
+  const handlePasswordSuccess = () => {
+    setIsAdminUnlocked(true);
+    setShowPasswordModal(false);
+    setShowWebhookModal(true);
+    showToast('รหัสผ่านถูกต้อง ปลดล็อกการจัดการ Webhook และแสดงหัวข้อที่ซ่อนเรียบร้อยแล้ว');
+  };
 
   useEffect(() => {
     const unsubscribe = initAuth(
@@ -239,15 +251,37 @@ export default function App() {
 
   const [isRefreshingSheet, setIsRefreshingSheet] = useState(false);
 
+  // Auto-fetch latest records from Google Sheet on app startup
+  useEffect(() => {
+    fetchRecordsFromSheet(accessToken)
+      .then((pulled) => {
+        if (pulled && pulled.length > 0) {
+          setRecords(pulled);
+        }
+      })
+      .catch(() => {});
+  }, [accessToken]);
+
   const handleRefreshSheet = async () => {
-    if (!accessToken) {
-      showToast('กรุณากดเชื่อมต่อ Google Sheets ด้านบนก่อนดึงข้อมูล');
-      await handleGoogleLogin();
-      return;
-    }
     setIsRefreshingSheet(true);
     try {
-      const pulled = await fetchRecordsFromSheet(accessToken);
+      // Step 1: Try fetching directly (Supports Apps Script Webhook or Public Link without login)
+      let pulled = await fetchRecordsFromSheet(accessToken);
+
+      // Step 2: If no data returned and not logged in, prompt Google Login
+      if (pulled.length === 0 && !accessToken) {
+        try {
+          const result = await googleSignIn(false);
+          if (result) {
+            setUser(result.user);
+            setAccessToken(result.accessToken);
+            pulled = await fetchRecordsFromSheet(result.accessToken);
+          }
+        } catch {
+          // user cancelled popup or closed
+        }
+      }
+
       setRecords(pulled);
       if (pulled.length > 0) {
         showToast(`ดึงข้อมูลจาก Google Sheet สำเร็จ: ปรับปรุงตรงกับฐานข้อมูล (${pulled.length} รายการ) เรียบร้อยแล้ว`);
@@ -258,6 +292,13 @@ export default function App() {
       showToast(`ดึงข้อมูลไม่สำเร็จ: ${err.message || 'โปรดลองใหม่'}`);
     } finally {
       setIsRefreshingSheet(false);
+    }
+  };
+
+  const handleClearAllRecords = () => {
+    if (window.confirm('คุณต้องการรีเซ็ตข้อมูลสถิติในระบบให้เป็น 0 หรือไม่?\n\n(ระบบจะล้างข้อมูลที่ค้างอยู่ในเบราว์เซอร์เพื่อให้ตัวเลขสถิติเป็น 0 ทันที โดยไม่กระทบต่อไฟล์บน Google Sheet)')) {
+      setRecords([]);
+      showToast('รีเซ็ตข้อมูลในระบบเรียบร้อยแล้ว (ตัวเลขสถิติเป็น 0)');
     }
   };
 
@@ -365,10 +406,28 @@ export default function App() {
             </button>
           </nav>
 
-          {/* Zone 3: Live Status / Budget Year Badge */}
-          <div className="hidden sm:flex items-center gap-2 text-xs bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/80 px-3.5 py-1.5 rounded-xl shadow-2xs">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 ring-4 ring-emerald-100" />
-            <span className="font-semibold text-blue-950">ปีงบประมาณ พ.ศ. ๒๕๖๙</span>
+          {/* Zone 3: Live Status & Manage Webhook Button */}
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => {
+                if (isAdminUnlocked) {
+                  setShowWebhookModal(true);
+                } else {
+                  setShowPasswordModal(true);
+                }
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-purple-300 bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-bold transition shadow-2xs cursor-pointer active:scale-95"
+              title="เปิดหน้าต่างตั้งค่า จัดการ Webhook (ต้องใช้รหัสผ่าน)"
+            >
+              <Settings2 className="w-3.5 h-3.5 text-purple-600" />
+              <span>จัดการ Webhook</span>
+            </button>
+
+            <div className="hidden sm:flex items-center gap-2 text-xs bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/80 px-3.5 py-1.5 rounded-xl shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 ring-4 ring-emerald-100" />
+              <span className="font-semibold text-blue-950">ปีงบประมาณ พ.ศ. ๒๕๖๙</span>
+            </div>
           </div>
 
         </div>
@@ -376,7 +435,7 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 py-6 px-4 sm:px-6">
-        {/* Google Sheets Connection & Sync Bar */}
+        {/* Google Sheets Connection & Sync Bar (Hidden by default, unlocked with password) */}
         <GoogleSheetsBar
           user={user}
           accessToken={accessToken}
@@ -385,6 +444,21 @@ export default function App() {
           onLogout={handleGoogleLogout}
           onNotify={showToast}
           onPullFromSheet={handlePullFromSheet}
+          showWebhookModal={showWebhookModal}
+          onCloseWebhookModal={() => setShowWebhookModal(false)}
+          onOpenWebhookModal={() => {
+            if (isAdminUnlocked) {
+              setShowWebhookModal(true);
+            } else {
+              setShowPasswordModal(true);
+            }
+          }}
+          isAdminUnlocked={isAdminUnlocked}
+          onLockAdmin={() => {
+            setIsAdminUnlocked(false);
+            setShowWebhookModal(false);
+            showToast('ซ่อนหัวข้อการเชื่อมต่อเรียบร้อยแล้ว');
+          }}
         />
 
         {activeTab === 'form' && (
@@ -436,8 +510,9 @@ export default function App() {
               records={records} 
               onNotify={showToast} 
               accessToken={accessToken}
-              onRefreshFromSheet={accessToken ? handleRefreshSheet : undefined}
+              onRefreshFromSheet={handleRefreshSheet}
               isRefreshing={isRefreshingSheet}
+              onClearAllRecords={handleClearAllRecords}
             />
           </div>
         )}
@@ -461,6 +536,13 @@ export default function App() {
 
       {/* Offline Indicator */}
       <OfflineIndicator />
+
+      {/* Webhook Admin Password Modal */}
+      <WebhookPasswordModal
+        isOpen={showPasswordModal}
+        onClose={() => setShowPasswordModal(false)}
+        onSuccess={handlePasswordSuccess}
+      />
 
       {/* Footer */}
       <footer className="bg-white border-t border-slate-200 py-4 px-6 text-center text-xs text-slate-500">

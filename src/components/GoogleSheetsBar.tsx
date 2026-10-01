@@ -14,7 +14,8 @@ import {
   Copy,
   Check,
   X,
-  Globe
+  Globe,
+  EyeOff
 } from 'lucide-react';
 import { User } from 'firebase/auth';
 import { 
@@ -37,6 +38,11 @@ interface GoogleSheetsBarProps {
   onNotify: (msg: string) => void;
   onPullFromSheet?: (records: DepositRecord[]) => void;
   onWebhookChange?: (url: string | null) => void;
+  showWebhookModal?: boolean;
+  onCloseWebhookModal?: () => void;
+  onOpenWebhookModal?: () => void;
+  isAdminUnlocked?: boolean;
+  onLockAdmin?: () => void;
 }
 
 export const GoogleSheetsBar: React.FC<GoogleSheetsBarProps> = ({
@@ -48,17 +54,29 @@ export const GoogleSheetsBar: React.FC<GoogleSheetsBarProps> = ({
   onNotify,
   onPullFromSheet,
   onWebhookChange,
+  showWebhookModal: showWebhookModalProp,
+  onCloseWebhookModal,
+  onOpenWebhookModal,
+  isAdminUnlocked = false,
+  onLockAdmin,
 }) => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [isPulling, setIsPulling] = useState(false);
   const [showConfirmSync, setShowConfirmSync] = useState(false);
   const [syncResult, setSyncResult] = useState<{ count: number; sheetTitle: string } | null>(null);
 
-  // Webhook state
-  const [webhookUrl, setWebhookState] = useState<string | null>(() => getAppsScriptUrl());
-  const [showWebhookModal, setShowWebhookModal] = useState(false);
+  // Webhook state (Default false until password unlocked)
+  const [internalShowWebhookModal, setInternalShowWebhookModal] = useState(false);
+  const showWebhookModal = showWebhookModalProp !== undefined ? showWebhookModalProp : internalShowWebhookModal;
+  const setShowWebhookModal = (open: boolean) => {
+    if (!open && onCloseWebhookModal) onCloseWebhookModal();
+    if (open && onOpenWebhookModal) onOpenWebhookModal();
+    setInternalShowWebhookModal(open);
+  };
+
   const [inputUrl, setInputUrl] = useState('');
   const [copiedCode, setCopiedCode] = useState(false);
+  const [webhookUrl, setWebhookState] = useState<string | null>(() => getAppsScriptUrl());
 
   useEffect(() => {
     setInputUrl(webhookUrl || '');
@@ -66,7 +84,22 @@ export const GoogleSheetsBar: React.FC<GoogleSheetsBarProps> = ({
 
   const sheetUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/edit`;
 
-  const appsScriptSnippet = `function doPost(e) {
+  const appsScriptSnippet = `function doGet(e) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getActiveSheet();
+    var data = sheet.getDataRange().getValues();
+    // ตัดแถวหัวตารางออก
+    var rows = data.length > 1 ? data.slice(1) : [];
+    return ContentService.createTextOutput(JSON.stringify({ status: "success", values: rows }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doPost(e) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = ss.getActiveSheet();
@@ -195,7 +228,8 @@ export const GoogleSheetsBar: React.FC<GoogleSheetsBarProps> = ({
 
   return (
     <div className="max-w-[1360px] mx-auto px-4 sm:px-6">
-      <div className="hidden bg-white rounded-xl border border-emerald-200/90 shadow-xs p-3.5 sm:p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3.5">
+      {isAdminUnlocked && (
+        <div className="bg-white rounded-xl border border-emerald-200/90 shadow-xs p-3.5 sm:p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3.5 mb-6 animate-in fade-in slide-in-from-top-2 duration-200">
         
         {/* Left: Google Sheets connection info */}
         <div className="flex items-center gap-3">
@@ -317,26 +351,56 @@ export const GoogleSheetsBar: React.FC<GoogleSheetsBarProps> = ({
                 <LogOut className="w-3.5 h-3.5" />
               </button>
             </>
-          ) : !webhookUrl ? (
-            /* Official Google Sign-in button style */
+          ) : (
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Pull button available even before login (will prompt login & pull) */}
+              <button
+                type="button"
+                onClick={async () => {
+                  await onLogin();
+                }}
+                disabled={isPulling}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-300 bg-blue-50/70 hover:bg-blue-100 text-blue-800 text-xs font-semibold shadow-2xs transition cursor-pointer"
+                title="ดึงข้อมูลคำขอจาก Google Sheet มาอัปเดตบนเครื่องนี้"
+              >
+                <Download className="w-3.5 h-3.5 text-blue-600" />
+                <span>ดึงข้อมูลจาก Sheet</span>
+              </button>
+
+              {/* Official Google Sign-in button style */}
+              <button
+                type="button"
+                onClick={onLogin}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 active:bg-slate-100 text-slate-700 text-xs font-semibold shadow-xs transition cursor-pointer"
+              >
+                <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 48 48">
+                  <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+                  <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+                  <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+                  <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+                  <path fill="none" d="M0 0h48v48H0z" />
+                </svg>
+                <span>เชื่อมต่อ Google Sheets</span>
+              </button>
+            </div>
+          )}
+
+          {/* Lock / Hide button */}
+          {onLockAdmin && (
             <button
               type="button"
-              onClick={onLogin}
-              className="inline-flex items-center gap-2.5 px-4 py-2 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 active:bg-slate-100 text-slate-700 text-xs font-semibold shadow-xs transition cursor-pointer"
+              onClick={onLockAdmin}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-800 text-xs font-semibold shadow-2xs transition cursor-pointer"
+              title="ซ่อนหัวข้อการเชื่อมต่อนี้ (ต้องระบุรหัสผ่านใหม่อีกครั้งเมื่อต้องการเปิด)"
             >
-              <svg className="w-4 h-4 shrink-0" viewBox="0 0 48 48">
-                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
-                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
-                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
-                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
-                <path fill="none" d="M0 0h48v48H0z" />
-              </svg>
-              <span>เชื่อมต่อ Google Sheets</span>
+              <EyeOff className="w-3.5 h-3.5 text-slate-500" />
+              <span>ซ่อนหัวข้อนี้</span>
             </button>
-          ) : null}
+          )}
         </div>
 
       </div>
+    )}
 
       {/* Webhook Configuration Modal */}
       {showWebhookModal && (

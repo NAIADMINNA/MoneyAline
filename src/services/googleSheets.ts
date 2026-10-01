@@ -394,31 +394,9 @@ export async function batchAppendRecordsToSheet(
 }
 
 /**
- * Fetch all records from Google Sheet to sync live data across multiple officers/devices
+ * Transform raw Google Sheet rows into DepositRecord objects
  */
-export async function fetchRecordsFromSheet(
-  accessToken: string,
-  spreadsheetId: string = SPREADSHEET_ID
-): Promise<DepositRecord[]> {
-  const sheetTitle = await getFirstSheetTitle(accessToken, spreadsheetId);
-  const quotedSheet = escapeSheetTitle(sheetTitle);
-  const range = `${quotedSheet}!A2:V`; // Skip header row
-  const res = await fetchWithRetry(
-    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}`,
-    {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    }
-  );
-
-  if (!res.ok) {
-    return [];
-  }
-
-  const data = await res.json();
-  const rows = data.values || [];
-
+export function parseRowsToRecords(rows: any[][]): DepositRecord[] {
   // Filter out empty rows or rows where contents were cleared/deleted in Google Sheet
   const validRows = rows.filter((row: any[]) => {
     if (!row || !Array.isArray(row) || row.length === 0) return false;
@@ -473,6 +451,83 @@ export async function fetchRecordsFromSheet(
       createdAt: row[21] || new Date().toISOString(),
     };
   });
+}
+
+/**
+ * Fetch all records from Google Sheet to sync live data across multiple officers/devices
+ * Supports OAuth access token, Apps Script Webhook, and Public Sheet view (0 login)
+ */
+export async function fetchRecordsFromSheet(
+  accessToken?: string | null,
+  spreadsheetId: string = SPREADSHEET_ID
+): Promise<DepositRecord[]> {
+  // Method 1: Google Sheets API v4 with OAuth token
+  if (accessToken) {
+    try {
+      const sheetTitle = await getFirstSheetTitle(accessToken, spreadsheetId);
+      const quotedSheet = escapeSheetTitle(sheetTitle);
+      const range = `${quotedSheet}!A2:V`; // Skip header row
+      const res = await fetchWithRetry(
+        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        return parseRowsToRecords(data.values || []);
+      }
+    } catch (e) {
+      console.warn('OAuth fetch failed, trying fallbacks...', e);
+    }
+  }
+
+  // Method 2: Google Apps Script Webhook (Zero Login required)
+  const webhookUrl = getAppsScriptUrl();
+  if (webhookUrl) {
+    try {
+      const scriptRes = await fetch(webhookUrl);
+      if (scriptRes.ok) {
+        const json = await scriptRes.json().catch(() => null);
+        if (json && json.status === 'success' && Array.isArray(json.values)) {
+          return parseRowsToRecords(json.values);
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  // Method 3: Google Visualization API (Zero Login required if shared with "Anyone with link can view")
+  try {
+    const gvizRes = await fetch(
+      `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:json`
+    );
+    if (gvizRes.ok) {
+      const text = await gvizRes.text();
+      if (text.includes('google.visualization.Query.setResponse')) {
+        const match = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);?/);
+        if (match) {
+          const parsed = JSON.parse(match[1]);
+          if (parsed.table && Array.isArray(parsed.table.rows)) {
+            const rows = parsed.table.rows.map((r: any) =>
+              (r.c || []).map((cell: any) =>
+                cell && cell.v !== undefined && cell.v !== null ? cell.v : ''
+              )
+            );
+            return parseRowsToRecords(rows);
+          }
+        }
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  return [];
 }
 
 /**
