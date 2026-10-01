@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#173499"/>
+      <stop offset="50%" stop-color="#1e40af"/>
+      <stop offset="100%" stop-color="#1e3a8a"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="50%" stop-color="#eab308"/>
+      <stop offset="100%" stop-color="#ca8a04"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Base background with rounded squircle -->
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  
+  <!-- Safe zone inner border -->
+  <rect x="32" y="32" width="448" height="448" rx="88" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="4"/>
+  
+  <!-- Central Emblem: Shield & Government Institution Pillars -->
+  <g transform="translate(106, 106) scale(0.585)">
+    <!-- Shield -->
+    <path d="M256 32 L448 96 V256 C448 376 366 458 256 488 C146 458 64 376 64 256 V96 Z" fill="rgba(255,255,255,0.1)" stroke="url(#gold)" stroke-width="20" stroke-linejoin="round"/>
+    
+    <!-- Building Pediment / Roof -->
+    <path d="M140 180 L256 110 L372 180 Z" fill="url(#gold)"/>
+    <rect x="130" y="180" width="252" height="16" rx="4" fill="#ffffff"/>
+    
+    <!-- Pillars -->
+    <rect x="160" y="208" width="24" height="110" rx="4" fill="#ffffff"/>
+    <rect x="216" y="208" width="24" height="110" rx="4" fill="#ffffff"/>
+    <rect x="272" y="208" width="24" height="110" rx="4" fill="#ffffff"/>
+    <rect x="328" y="208" width="24" height="110" rx="4" fill="#ffffff"/>
+    
+    <!-- Base -->
+    <rect x="130" y="328" width="252" height="20" rx="6" fill="#ffffff"/>
+    <rect x="110" y="348" width="292" height="24" rx="8" fill="url(#gold)"/>
+    
+    <!-- Checkmark Badge -->
+    <circle cx="256" cy="400" r="42" fill="#22c55e" stroke="#ffffff" stroke-width="8"/>
+    <path d="M242 400 L252 410 L272 390" fill="none" stroke="#ffffff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>
