@@ -12,12 +12,8 @@ export const PAYMENT_CHANNELS = [
 
 export const ALIEN_CATEGORIES = [
   'MOU (2 ปีแรก)',
-  'MOU (ต่ออายุ 2 ปี)',
-  'มติ ครม. 5 ก.ค. 2566',
   'มติ ครม. 24 ก.ย. 2567',
-  'นำเข้าตาม MOU ครบกำหนด',
-  'คนต่างด้าวสัญชาติ กัมพูชา ลาว เมียนมา เวียดนาม',
-  'บัตรผ่านแดน (Border Pass ตามมาตรา 64)',
+  'มติ ครม. 8 ก.ค. 2568',
 ];
 
 export const NATIONALITIES = [
