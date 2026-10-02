@@ -42,12 +42,28 @@ export const DepositLedger: React.FC<DepositLedgerProps> = ({
   const [recordToDelete, setRecordToDelete] = useState<DepositRecord | null>(null);
 
   const unsyncedCount = useMemo(() => {
-    return records.filter(r => !r.syncedToSheet).length;
+    return records.filter(r => {
+      if (!r || !r.requestNumber) return false;
+      if (r.requestNumber.includes('เลขที่คำขอ') || (r.employerName || '').includes('ชื่อนายจ้าง')) return false;
+      return !r.syncedToSheet;
+    }).length;
   }, [records]);
 
   // Filtered list
   const filteredRecords = useMemo(() => {
     return records.filter((rec) => {
+      if (!rec) return false;
+      const req = (rec.requestNumber || '').trim();
+      const emp = (rec.employerName || '').trim();
+      const office = (rec.employmentOffice || '').trim();
+      if (
+        req.includes('เลขที่คำขอ') ||
+        emp.includes('ชื่อนายจ้าง') ||
+        office.includes('สำนักงานจัดหางานที่รับคำขอ')
+      ) {
+        return false;
+      }
+
       // Search matches
       const query = searchQuery.trim().toLowerCase();
       const matchWorker = rec.workers?.some((w) =>

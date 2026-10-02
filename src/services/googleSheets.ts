@@ -397,9 +397,31 @@ export async function batchAppendRecordsToSheet(
  * Transform raw Google Sheet rows into DepositRecord objects
  */
 export function parseRowsToRecords(rows: any[][]): DepositRecord[] {
-  // Filter out empty rows or rows where contents were cleared/deleted in Google Sheet
+  // Filter out empty rows, null rows, and strictly EXCLUDE the header row
   const validRows = rows.filter((row: any[]) => {
     if (!row || !Array.isArray(row) || row.length === 0) return false;
+
+    // Detect and discard table header row (แถวแรกที่เป็นหัวตาราง ไม่นับเป็นข้อมูล)
+    const c0 = String(row[0] || '').trim();
+    const c1 = String(row[1] || '').trim();
+    const c2 = String(row[2] || '').trim();
+    const c3 = String(row[3] || '').trim();
+    const c5 = String(row[5] || '').trim();
+    const c7 = String(row[7] || '').trim();
+    const c17 = String(row[17] || '').trim();
+
+    if (
+      c0 === 'ลำดับที่' ||
+      c1.includes('วันที่ชำระเงิน') ||
+      c2.includes('เลขที่คำขอ') ||
+      c3.includes('เล่มที่ใบเสร็จ') ||
+      c5.includes('ประเภทนายจ้าง') ||
+      c7.includes('ชื่อนายจ้าง') ||
+      c17.includes('สำนักงานจัดหางานที่รับคำขอ')
+    ) {
+      return false; // Skip header row!
+    }
+
     return row.some((cell: any, idx: number) => {
       if (idx === 0) return false; // ignore sequential row number formula/value
       return cell !== undefined && cell !== null && String(cell).trim() !== '' && String(cell).trim() !== '-';

@@ -38,15 +38,37 @@ export const DepositStats: React.FC<DepositStatsProps> = ({
   isRefreshing = false,
   onClearAllRecords
 }) => {
+  // Strictly filter out any table header rows (แถวแรกที่เป็นหัวตาราง ไม่นับมาคำนวณในสถิติ)
+  const cleanRecords = useMemo(() => {
+    return records.filter(r => {
+      if (!r) return false;
+      const req = (r.requestNumber || '').trim();
+      const emp = (r.employerName || '').trim();
+      const office = (r.employmentOffice || '').trim();
+      const date = (r.paymentDate || '').trim();
+      const book = (r.receiptBook || '').trim();
+      if (
+        req.includes('เลขที่คำขอ') ||
+        emp.includes('ชื่อนายจ้าง') ||
+        office.includes('สำนักงานจัดหางานที่รับคำขอ') ||
+        date.includes('วันที่ชำระเงิน') ||
+        book.includes('เล่มที่ใบเสร็จ')
+      ) {
+        return false;
+      }
+      return true;
+    });
+  }, [records]);
+
   // Distinct offices currently found in data records
   const activeOfficesInData = useMemo(() => {
-    const list = Array.from(new Set(records.map(r => (r.employmentOffice || '').trim()).filter(Boolean)));
+    const list = Array.from(new Set(cleanRecords.map(r => (r.employmentOffice || '').trim()).filter(Boolean)));
     return list.sort();
-  }, [records]);
+  }, [cleanRecords]);
 
   // Selected employment office (Must always be a specific office, never "all")
   const [selectedOffice, setSelectedOffice] = useState<string>(() => {
-    const list = Array.from(new Set(records.map(r => (r.employmentOffice || '').trim()).filter(Boolean)));
+    const list = Array.from(new Set(cleanRecords.map(r => (r.employmentOffice || '').trim()).filter(Boolean)));
     return list[0] || BANGKOK_EMPLOYMENT_OFFICES[0] || 'สำนักงานจัดหางานกรุงเทพมหานครพื้นที่ 1';
   });
 
@@ -55,19 +77,19 @@ export const DepositStats: React.FC<DepositStatsProps> = ({
   // Filter records by the chosen specific office (strictly 1 office)
   const filteredRecordsForExport = useMemo(() => {
     if (!selectedOffice) return [];
-    return records.filter((r) => (r.employmentOffice || '').trim() === selectedOffice.trim());
-  }, [records, selectedOffice]);
+    return cleanRecords.filter((r) => (r.employmentOffice || '').trim() === selectedOffice.trim());
+  }, [cleanRecords, selectedOffice]);
 
   // Overall metrics across all records
-  const totalAmount = records.reduce((acc, r) => acc + r.totalAmount, 0);
-  const totalWorkers = records.reduce((acc, r) => acc + r.alienCount, 0);
-  const totalTransactions = records.length;
-  const juristicCount = records.filter(r => r.employerType === 'company').length;
-  const individualCount = records.filter(r => r.employerType === 'individual').length;
+  const totalAmount = cleanRecords.reduce((acc, r) => acc + r.totalAmount, 0);
+  const totalWorkers = cleanRecords.reduce((acc, r) => acc + r.alienCount, 0);
+  const totalTransactions = cleanRecords.length;
+  const juristicCount = cleanRecords.filter(r => r.employerType === 'company').length;
+  const individualCount = cleanRecords.filter(r => r.employerType === 'individual').length;
 
   // Breakdown by employment office
   const officeStats = useMemo(() => {
-    return records.reduce((acc, r) => {
+    return cleanRecords.reduce((acc, r) => {
       const office = (r.employmentOffice || 'ไม่ระบุสำนักงาน').trim();
       if (!acc[office]) {
         acc[office] = { count: 0, workers: 0, amount: 0 };
@@ -77,23 +99,23 @@ export const DepositStats: React.FC<DepositStatsProps> = ({
       acc[office].amount += r.totalAmount || 0;
       return acc;
     }, {} as Record<string, { count: number; workers: number; amount: number }>);
-  }, [records]);
+  }, [cleanRecords]);
 
   // Breakdown by alien category
-  const categoryStats = records.reduce((acc, r) => {
+  const categoryStats = cleanRecords.reduce((acc, r) => {
     acc[r.alienCategory] = (acc[r.alienCategory] || 0) + r.alienCount;
     return acc;
   }, {} as Record<string, number>);
 
   // Breakdown by payment channel / method
-  const channelStats = records.reduce((acc, r) => {
+  const channelStats = cleanRecords.reduce((acc, r) => {
     const key = (r.paymentChannel || 'ชำระผ่านระบบ').split('/')[0].trim();
     acc[key] = (acc[key] || 0) + r.totalAmount;
     return acc;
   }, {} as Record<string, number>);
 
   // Breakdown by worker nationality
-  const nationalityStats = records.reduce((acc, r) => {
+  const nationalityStats = cleanRecords.reduce((acc, r) => {
     (r.workers || []).forEach(w => {
       const nat = w.nationality ? w.nationality.split('(')[0].trim() : 'ไม่ระบุ';
       acc[nat] = (acc[nat] || 0) + 1;
