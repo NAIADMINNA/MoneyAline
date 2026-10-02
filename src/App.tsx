@@ -6,7 +6,9 @@ import {
   CheckCircle,
   HelpCircle,
   Download,
-  Settings2
+  Settings2,
+  RefreshCw,
+  Users
 } from 'lucide-react';
 import { DepositRecord } from './types/deposit';
 import { INITIAL_RECORDS } from './data/initialData';
@@ -84,6 +86,58 @@ export default function App() {
   });
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showWebhookModal, setShowWebhookModal] = useState(false);
+
+  // Counter tracking: ผู้เข้าใช้งาน & ผู้กดส่งออกไฟล์ (เริ่มต้นที่ 0 แท้จริง ไม่มีการจำลองตัวเลข)
+  const [visitorCount, setVisitorCount] = useState<number>(() => {
+    try {
+      localStorage.removeItem('doe_visitor_count'); // ล้างค่าตัวเลขจำลองเดิมออก
+      const saved = localStorage.getItem('doe_real_visitor_count');
+      if (saved !== null) {
+        const val = parseInt(saved, 10);
+        return isNaN(val) ? 0 : val;
+      }
+      return 0;
+    } catch {
+      return 0;
+    }
+  });
+
+  const [exportClickCount, setExportClickCount] = useState<number>(() => {
+    try {
+      localStorage.removeItem('doe_export_count'); // ล้างค่าตัวเลขจำลองเดิมออก
+      const saved = localStorage.getItem('doe_real_export_count');
+      if (saved !== null) {
+        const val = parseInt(saved, 10);
+        return isNaN(val) ? 0 : val;
+      }
+      return 0;
+    } catch {
+      return 0;
+    }
+  });
+
+  // นับจำนวนคนเข้าใช้งานจริง เริ่มต้นนับจาก 0
+  useEffect(() => {
+    try {
+      const recorded = sessionStorage.getItem('doe_real_visit_session');
+      if (!recorded) {
+        sessionStorage.setItem('doe_real_visit_session', 'true');
+        setVisitorCount(prev => {
+          const next = prev + 1;
+          try { localStorage.setItem('doe_real_visitor_count', String(next)); } catch {}
+          return next;
+        });
+      }
+    } catch {}
+  }, []);
+
+  const handleExportSuccess = () => {
+    setExportClickCount(prev => {
+      const next = prev + 1;
+      try { localStorage.setItem('doe_real_export_count', String(next)); } catch {}
+      return next;
+    });
+  };
 
   const handlePasswordSuccess = () => {
     try {
@@ -205,6 +259,16 @@ export default function App() {
     }
 
     setRecords(prev => [savedRecord, ...prev]);
+
+    // AUTO: ตรวจสอบและดึงข้อมูลอัปเดตสถิติภาพรวมทันทีหลังจากบันทึกรายการใหม่
+    setTimeout(() => {
+      fetchRecordsFromSheet(accessToken).then((pulled) => {
+        if (pulled && pulled.length > 0) {
+          setRecords(pulled);
+          setLastSyncTime(new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+        }
+      }).catch(() => {});
+    }, 1500);
   };
 
   const handleSyncSingleRecord = async (record: DepositRecord) => {
@@ -276,24 +340,55 @@ export default function App() {
   };
 
   const [isRefreshingSheet, setIsRefreshingSheet] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState<string>(() => 
+    new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  );
+  const [syncCountdown, setSyncCountdown] = useState<number>(20);
+  const [isAutoSyncing, setIsAutoSyncing] = useState<boolean>(false);
 
-  // Auto-fetch latest records from Google Sheet on app startup and when visiting stats or ledger
+  // 100% AUTO ENGINE: ตรวจสอบและดึงข้อมูลล่าสุดอัตโนมัติทุก 20 วินาที อย่างแม่นยำ
   useEffect(() => {
     let isMounted = true;
-    fetchRecordsFromSheet(accessToken)
-      .then((pulled) => {
-        if (isMounted) {
-          if (pulled && pulled.length > 0) {
+
+    const performSync = async (isBackground = false) => {
+      if (isBackground && isMounted) setIsAutoSyncing(true);
+      try {
+        const pulled = await fetchRecordsFromSheet(accessToken);
+        if (isMounted && Array.isArray(pulled)) {
+          if (pulled.length > 0) {
             setRecords(pulled);
           } else if (accessToken) {
             setRecords([]);
           }
+          setLastSyncTime(new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
         }
-      })
-      .catch(() => {});
+      } catch (e) {
+        // Fallback gracefully
+      } finally {
+        if (isMounted) {
+          setIsAutoSyncing(false);
+          setSyncCountdown(20);
+        }
+      }
+    };
+
+    // 1. ตรวจสอบทันทีเมื่อเปิดระบบหรือสลับหน้า
+    performSync(false);
+
+    // 2. ตรวจสอบอัตโนมัติทุก 20 วินาทีแบบนับถอยหลัง
+    const timer = setInterval(() => {
+      setSyncCountdown((prev) => {
+        if (prev <= 1) {
+          performSync(true);
+          return 20;
+        }
+        return prev - 1;
+      });
+    }, 1000);
 
     return () => {
       isMounted = false;
+      clearInterval(timer);
     };
   }, [accessToken, activeTab]);
 
@@ -497,6 +592,9 @@ export default function App() {
             setShowWebhookModal(false);
             showToast('ซ่อนหัวข้อการเชื่อมต่อเรียบร้อยแล้ว');
           }}
+          lastSyncTime={lastSyncTime}
+          syncCountdown={syncCountdown}
+          isAutoSyncing={isAutoSyncing}
         />
 
         {activeTab === 'form' && (
@@ -551,6 +649,10 @@ export default function App() {
               onRefreshFromSheet={handleRefreshSheet}
               isRefreshing={isRefreshingSheet}
               onClearAllRecords={handleClearAllRecords}
+              lastSyncTime={lastSyncTime}
+              syncCountdown={syncCountdown}
+              isAutoSyncing={isAutoSyncing}
+              onExportSuccess={handleExportSuccess}
             />
           </div>
         )}
@@ -582,9 +684,42 @@ export default function App() {
         onSuccess={handlePasswordSuccess}
       />
 
-      {/* Footer */}
-      <footer className="bg-white border-t border-slate-200 py-4 px-6 text-center text-xs text-slate-500">
-        ระบบบันทึกการชำระเงินค่าวางหลักประกันแรงงานต่างด้าว · กรมการจัดหางาน กระทรวงแรงงาน
+      {/* Footer with Counters on the Right Hand Side */}
+      <footer className="bg-white border-t border-slate-200/90 py-3.5 px-4 sm:px-6">
+        <div className="max-w-[1360px] mx-auto flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+          <div className="text-center md:text-left font-medium">
+            ระบบบันทึกการชำระเงินค่าวางหลักประกันแรงงานต่างด้าว · กรมการจัดหางาน กระทรวงแรงงาน
+          </div>
+
+          {/* ด้านขวามือ: การนับจำนวนคนเข้าใช้งาน และ คนกดเลือกส่งออกไฟล์ */}
+          <div className="flex items-center gap-2.5 flex-wrap justify-center md:justify-end text-xs">
+            {/* 1. จำนวนคนเข้าใช้งาน */}
+            <div 
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50/80 border border-blue-200 text-blue-950 shadow-2xs hover:bg-blue-100/70 transition"
+              title="จำนวนครั้งที่มีผู้เข้าใช้งานระบบ"
+            >
+              <Users className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+              <span className="text-slate-600 font-medium text-[11px]">ผู้เข้าใช้งาน:</span>
+              <strong className="font-mono font-bold text-blue-700 bg-white px-1.5 py-0.5 rounded-md border border-blue-100 shadow-2xs">
+                {visitorCount.toLocaleString('th-TH')}
+              </strong>
+              <span className="text-slate-500 text-[11px]">คน</span>
+            </div>
+
+            {/* 2. คนกดเลือกส่งออกไฟล์ */}
+            <div 
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50/80 border border-emerald-200 text-emerald-950 shadow-2xs hover:bg-emerald-100/70 transition"
+              title="จำนวนครั้งที่มีการกดส่งออกไฟล์ฐานข้อมูล CSV"
+            >
+              <Download className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span className="text-slate-600 font-medium text-[11px]">ส่งออกไฟล์:</span>
+              <strong className="font-mono font-bold text-emerald-700 bg-white px-1.5 py-0.5 rounded-md border border-emerald-100 shadow-2xs">
+                {exportClickCount.toLocaleString('th-TH')}
+              </strong>
+              <span className="text-slate-500 text-[11px]">ครั้ง</span>
+            </div>
+          </div>
+        </div>
       </footer>
 
     </div>

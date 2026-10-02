@@ -1,5 +1,6 @@
 import { DepositRecord } from '../types/deposit';
 import { formatToBuddhistDate, formatToBuddhistDateTime } from '../utils/thaiBahtText';
+import { clearExpiredToken } from './googleAuth';
 
 export const SPREADSHEET_ID = '1iHFYiENrsCO63VpYP23DBkHqxQwCCEv188v61-hCE4I';
 
@@ -76,6 +77,10 @@ export async function getFirstSheetTitle(accessToken: string, spreadsheetId: str
   });
 
   if (!res.ok) {
+    if (res.status === 401) {
+      clearExpiredToken();
+      throw new Error('โทเค็นการเชื่อมต่อ Google หมดอายุ กรุณากดเชื่อมต่อ Google Sheets ใหม่อีกครั้ง');
+    }
     const errorData = await res.json().catch(() => ({}));
     const rawMsg = errorData.error?.message || '';
     if (res.status === 403 || rawMsg.toLowerCase().includes('insufficient')) {
@@ -323,6 +328,10 @@ export async function appendRecordToSheet(
   });
 
   if (!appendRes.ok) {
+    if (appendRes.status === 401) {
+      clearExpiredToken();
+      throw new Error('โทเค็นการเชื่อมต่อ Google หมดอายุ กรุณากดเชื่อมต่อ Google Sheets ใหม่อีกครั้ง');
+    }
     const errorData = await appendRes.json().catch(() => ({}));
     const rawMsg = errorData.error?.message || '';
     if (appendRes.status === 403 || rawMsg.toLowerCase().includes('insufficient')) {
@@ -382,6 +391,10 @@ export async function batchAppendRecordsToSheet(
   });
 
   if (!appendRes.ok) {
+    if (appendRes.status === 401) {
+      clearExpiredToken();
+      throw new Error('โทเค็นการเชื่อมต่อ Google หมดอายุ กรุณากดเชื่อมต่อ Google Sheets ใหม่อีกครั้ง');
+    }
     const errorData = await appendRes.json().catch(() => ({}));
     const rawMsg = errorData.error?.message || '';
     if (appendRes.status === 403 || rawMsg.toLowerCase().includes('insufficient')) {
@@ -502,7 +515,13 @@ export async function fetchRecordsFromSheet(
         const data = await res.json();
         return parseRowsToRecords(data.values || []);
       }
-    } catch (e) {
+      if (res.status === 401) {
+        clearExpiredToken();
+      }
+    } catch (e: any) {
+      if (e?.message?.includes('หมดอายุ') || String(e).includes('401')) {
+        clearExpiredToken();
+      }
       console.warn('OAuth fetch failed, trying fallbacks...', e);
     }
   }

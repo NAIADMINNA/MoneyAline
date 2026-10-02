@@ -162,6 +162,15 @@ export const setCachedAccessToken = (token: string | null) => {
   }
 };
 
+export const clearExpiredToken = () => {
+  cachedAccessToken = null;
+  try {
+    localStorage.removeItem(STORAGE_KEY_TOKEN);
+  } catch (e) {
+    console.error('Error clearing expired token', e);
+  }
+};
+
 export const logoutGoogle = async () => {
   try {
     await signOut(auth);

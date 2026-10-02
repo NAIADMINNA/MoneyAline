@@ -28,6 +28,10 @@ interface DepositStatsProps {
   onRefreshFromSheet?: () => Promise<void>;
   isRefreshing?: boolean;
   onClearAllRecords?: () => void;
+  lastSyncTime?: string;
+  syncCountdown?: number;
+  isAutoSyncing?: boolean;
+  onExportSuccess?: () => void;
 }
 
 export const DepositStats: React.FC<DepositStatsProps> = ({ 
@@ -36,7 +40,11 @@ export const DepositStats: React.FC<DepositStatsProps> = ({
   accessToken, 
   onRefreshFromSheet,
   isRefreshing = false,
-  onClearAllRecords
+  onClearAllRecords,
+  lastSyncTime,
+  syncCountdown = 20,
+  isAutoSyncing = false,
+  onExportSuccess
 }) => {
   // Strictly filter out any table header rows (แถวแรกที่เป็นหัวตาราง ไม่นับมาคำนวณในสถิติ)
   const cleanRecords = useMemo(() => {
@@ -134,6 +142,10 @@ const book = String(r.receiptBook || '').trim();
     const exportedCount = exportDatabaseToCSV(records, selectedOffice);
     const successMsg = `ส่งออกไฟล์ CSV ฐานข้อมูล (${selectedOffice}) จำนวน ${exportedCount} รายการเรียบร้อยแล้ว`;
     
+    if (onExportSuccess) {
+      onExportSuccess();
+    }
+
     setExportSuccessMessage(successMsg);
     if (onNotify) onNotify(successMsg);
 
@@ -337,8 +349,8 @@ const book = String(r.receiptBook || '').trim();
         </div>
       </div>
 
-      {/* 4 Metric Cards with Rich Vibrancy */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* 3 Metric Cards with Rich Vibrancy */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Metric 1: ยอดเงินรวม */}
         <div className="bg-gradient-to-br from-blue-700 via-indigo-700 to-blue-900 text-white rounded-2xl p-5 shadow-lg shadow-blue-700/20 relative overflow-hidden flex items-center justify-between group hover:-translate-y-0.5 transition-transform duration-200">
           <div className="space-y-1">
@@ -372,23 +384,7 @@ const book = String(r.receiptBook || '').trim();
           </div>
         </div>
 
-        {/* Metric 3: จำนวนใบเสร็จ */}
-        <div className="bg-gradient-to-br from-purple-600 via-violet-600 to-indigo-800 text-white rounded-2xl p-5 shadow-lg shadow-purple-600/20 relative overflow-hidden flex items-center justify-between group hover:-translate-y-0.5 transition-transform duration-200">
-          <div className="space-y-1">
-            <p className="text-xs font-medium text-purple-200">จำนวนใบเสร็จที่ออกแล้ว</p>
-            <h3 className="text-2xl sm:text-3xl font-extrabold font-mono tracking-tight text-white drop-shadow-xs">
-              {formatNumber(totalTransactions)} <span className="text-base font-normal text-purple-200">ฉบับ</span>
-            </h3>
-            <p className="text-[11px] text-purple-200 pt-0.5">
-              พิมพ์ออกใบเสร็จสมบูรณ์ 100%
-            </p>
-          </div>
-          <div className="w-13 h-13 rounded-2xl bg-white/15 text-white backdrop-blur-md ring-1 ring-white/25 flex items-center justify-center shrink-0 shadow-inner">
-            <FileCheck2 className="w-7 h-7 text-white" />
-          </div>
-        </div>
-
-        {/* Metric 4: สัดส่วนนายจ้าง */}
+        {/* Metric 3: สัดส่วนนายจ้าง */}
         <div className="bg-gradient-to-br from-amber-500 via-orange-500 to-amber-700 text-white rounded-2xl p-5 shadow-lg shadow-amber-500/20 relative overflow-hidden flex items-center justify-between group hover:-translate-y-0.5 transition-transform duration-200">
           <div className="space-y-1">
             <p className="text-xs font-medium text-amber-100">สัดส่วนประเภทนายจ้าง</p>

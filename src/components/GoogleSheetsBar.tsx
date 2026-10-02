@@ -43,6 +43,9 @@ interface GoogleSheetsBarProps {
   onOpenWebhookModal?: () => void;
   isAdminUnlocked?: boolean;
   onLockAdmin?: () => void;
+  lastSyncTime?: string;
+  syncCountdown?: number;
+  isAutoSyncing?: boolean;
 }
 
 export const GoogleSheetsBar: React.FC<GoogleSheetsBarProps> = ({
@@ -59,6 +62,9 @@ export const GoogleSheetsBar: React.FC<GoogleSheetsBarProps> = ({
   onOpenWebhookModal,
   isAdminUnlocked = false,
   onLockAdmin,
+  lastSyncTime,
+  syncCountdown = 20,
+  isAutoSyncing = false,
 }) => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [isPulling, setIsPulling] = useState(false);
@@ -418,6 +424,31 @@ function doPost(e) {
               >
                 <X className="w-5 h-5" />
               </button>
+            </div>
+
+            {/* Auto-Sync 20s Status inside Webhook Management */}
+            <div className="mt-4 bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border border-emerald-200 rounded-xl p-3 flex flex-wrap items-center justify-between gap-3 shadow-2xs">
+              <div className="flex items-center gap-2.5">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className={`animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 ${isAutoSyncing ? 'duration-500' : 'duration-1000'}`}></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-600"></span>
+                </span>
+                <div>
+                  <div className="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
+                    <span>ระบบตรวจสอบอัตโนมัติ (AUTO-SYNC)</span>
+                    <span className="text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-full font-mono font-semibold">
+                      ทุก 20 วินาที
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-emerald-700 mt-0.5">
+                    ระบบดึงข้อมูลและรายงานผลล่าสุดจาก Google Sheet อัตโนมัติทุก 20 วินาที
+                  </div>
+                </div>
+              </div>
+              <div className="text-right text-[11px] font-mono text-emerald-800">
+                <div>รอบถัดไปใน: <strong className="text-emerald-950 font-bold">{syncCountdown} วิ</strong></div>
+                {lastSyncTime && <div className="text-[10px] text-emerald-600 font-mono">อัปเดตล่าสุด {lastSyncTime} น.</div>}
+              </div>
             </div>
 
             <div className="mt-4 space-y-4 text-xs text-slate-600">
