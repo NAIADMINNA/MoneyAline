@@ -15,7 +15,8 @@ import {
   Check,
   X,
   Globe,
-  EyeOff
+  EyeOff,
+  RotateCcw
 } from 'lucide-react';
 import { User } from 'firebase/auth';
 import { 
@@ -46,6 +47,7 @@ interface GoogleSheetsBarProps {
   lastSyncTime?: string;
   syncCountdown?: number;
   isAutoSyncing?: boolean;
+  onClearAllRecords?: () => void;
 }
 
 export const GoogleSheetsBar: React.FC<GoogleSheetsBarProps> = ({
@@ -65,6 +67,7 @@ export const GoogleSheetsBar: React.FC<GoogleSheetsBarProps> = ({
   lastSyncTime,
   syncCountdown = 20,
   isAutoSyncing = false,
+  onClearAllRecords,
 }) => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [isPulling, setIsPulling] = useState(false);
@@ -511,6 +514,40 @@ function doPost(e) {
                   </div>
                 </div>
               </div>
+
+              {/* Reset Statistics to 0 section (Moved here per user request) */}
+              {onClearAllRecords && (
+                <div className="bg-rose-50/70 border border-rose-200/90 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                  <div className="flex items-start gap-2.5">
+                    <div className="p-1.5 rounded-lg bg-rose-100 text-rose-700 shrink-0 mt-0.5">
+                      <RotateCcw className="w-4 h-4 text-rose-600" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-rose-950 flex items-center gap-1.5">
+                        <span>รีเซ็ตสถิติ:</span>
+                        <span className="text-[10px] bg-rose-100 text-rose-800 font-semibold px-2 py-0.5 rounded-full border border-rose-200">
+                          รีเซ็ตเป็น 0
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-rose-700/90 mt-0.5 leading-relaxed">
+                        หากลบข้อมูลใน Google Sheet แล้วต้องการให้ตัวเลขสถิติภาพรวมในระบบเป็น 0 ทันที
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClearAllRecords();
+                      setShowWebhookModal(false);
+                    }}
+                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white hover:bg-rose-50 active:scale-95 text-rose-700 hover:text-rose-800 border border-rose-300 text-xs font-bold rounded-xl shadow-xs transition cursor-pointer shrink-0"
+                    title="หากลบข้อมูลใน Google Sheet แล้วต้องการให้ตัวเลขสถิติในระบบเป็น 0 ทันที"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5 text-rose-600" />
+                    <span>รีเซ็ตเป็น 0</span>
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="mt-5 flex items-center justify-between pt-3 border-t border-slate-200">

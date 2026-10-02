@@ -268,25 +268,6 @@ const book = String(r.receiptBook || '').trim();
               </button>
             </div>
 
-            {/* Clear / Reset Local Records Button */}
-            {onClearAllRecords && records.length > 0 && (
-              <div className="sm:self-end">
-                <label className="block text-[11px] font-bold text-rose-800 mb-1 flex items-center gap-1">
-                  <RotateCcw className="w-3.5 h-3.5 text-rose-600" />
-                  <span>รีเซ็ตสถิติ:</span>
-                </label>
-                <button
-                  type="button"
-                  onClick={onClearAllRecords}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 border border-rose-300 text-xs font-bold rounded-xl shadow-xs transition cursor-pointer"
-                  title="หากลบข้อมูลใน Google Sheet แล้วต้องการให้ตัวเลขสถิติในระบบเป็น 0 ทันที"
-                >
-                  <RotateCcw className="w-3.5 h-3.5 text-rose-600" />
-                  <span>รีเซ็ตเป็น 0</span>
-                </button>
-              </div>
-            )}
-
             {/* Export CSV Button */}
             <div className="sm:self-end">
               <label className="block text-[11px] font-bold text-emerald-900 mb-1 flex items-center gap-1">

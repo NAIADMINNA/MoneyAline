@@ -595,6 +595,7 @@ export default function App() {
           lastSyncTime={lastSyncTime}
           syncCountdown={syncCountdown}
           isAutoSyncing={isAutoSyncing}
+          onClearAllRecords={handleClearAllRecords}
         />
 
         {activeTab === 'form' && (
