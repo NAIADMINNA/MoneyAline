@@ -42,11 +42,11 @@ export const DepositStats: React.FC<DepositStatsProps> = ({
   const cleanRecords = useMemo(() => {
     return records.filter(r => {
       if (!r) return false;
-      const req = (r.requestNumber || '').trim();
-      const emp = (r.employerName || '').trim();
-      const office = (r.employmentOffice || '').trim();
-      const date = (r.paymentDate || '').trim();
-      const book = (r.receiptBook || '').trim();
+    const req = String(r.requestNumber || '').trim();
+const emp = String(r.employerName || '').trim();
+const office = String(r.employmentOffice || '').trim();
+const date = String(r.paymentDate || '').trim();
+const book = String(r.receiptBook || '').trim();
       if (
         req.includes('เลขที่คำขอ') ||
         emp.includes('ชื่อนายจ้าง') ||
