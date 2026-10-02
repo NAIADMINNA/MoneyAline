@@ -53,9 +53,9 @@ export const DepositLedger: React.FC<DepositLedgerProps> = ({
   const filteredRecords = useMemo(() => {
     return records.filter((rec) => {
       if (!rec) return false;
-      const req = (rec.requestNumber || '').trim();
-      const emp = (rec.employerName || '').trim();
-      const office = (rec.employmentOffice || '').trim();
+     const req = String(rec.requestNumber || '').trim();
+      const emp = String(rec.employerName || '').trim();
+      const office = String(rec.employmentOffice || '').trim();
       if (
         req.includes('เลขที่คำขอ') ||
         emp.includes('ชื่อนายจ้าง') ||
