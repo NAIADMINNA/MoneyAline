@@ -1,6 +1,26 @@
-import { DepositRecord } from '../types/deposit';
-import { formatToBuddhistDate, formatToBuddhistDateTime } from '../utils/thaiBahtText';
+import { DepositRecord, ForeignWorker } from '../types/deposit';
+import { formatToBuddhistDate, formatToBuddhistDateTime, numberToThaiBahtText } from '../utils/thaiBahtText';
 import { clearExpiredToken } from './googleAuth';
+
+export const WORKER_STORAGE_MODE_KEY = 'doe_worker_storage_mode';
+
+/**
+ * Get whether to store foreign workers as 1 row per worker ('split') or combined in 1 row ('single')
+ * Default: 'split' (แยก 1 แถวต่อแรงงาน 1 คน เพื่อไม่ให้ข้อมูลซ้อนกันในเซลล์)
+ */
+export function getWorkerStorageMode(): 'split' | 'single' {
+  try {
+    const saved = localStorage.getItem(WORKER_STORAGE_MODE_KEY);
+    if (saved === 'single') return 'single';
+  } catch {}
+  return 'split';
+}
+
+export function setWorkerStorageMode(mode: 'split' | 'single') {
+  try {
+    localStorage.setItem(WORKER_STORAGE_MODE_KEY, mode);
+  } catch {}
+}
 
 export const SPREADSHEET_ID = '1iHFYiENrsCO63VpYP23DBkHqxQwCCEv188v61-hCE4I';
 
@@ -236,13 +256,90 @@ export async function forceUpdateSheetHeaders(
 }
 
 /**
+ * Restructure existing data in Google Sheet
+ * Converts any rows with stacked multiline workers into 1 clean row per worker
+ */
+export async function restructureSheetDataToSingleWorkerRows(
+  accessToken: string,
+  spreadsheetId: string = SPREADSHEET_ID
+): Promise<{ originalRecordsCount: number; newRowsCount: number }> {
+  const records = await fetchRecordsFromSheet(accessToken, spreadsheetId);
+  if (records.length === 0) {
+    throw new Error('ไม่พบข้อมูลใน Google Sheet ให้จัดระเบียบ');
+  }
+
+  const sheetTitle = await getFirstSheetTitle(accessToken, spreadsheetId);
+  const quotedSheet = escapeSheetTitle(sheetTitle);
+
+  // Generate expanded single-worker rows for all records
+  const allRows: (string | number)[][] = [];
+  records.forEach((r) => {
+    const rows = formatRecordToRows(r, allRows.length + 1);
+    allRows.push(...rows);
+  });
+
+  // Re-sequence column 1
+  allRows.forEach((row, i) => {
+    row[0] = i + 1;
+  });
+
+  // Ensure row 1 has the standard headers
+  await ensureHeaders(accessToken, sheetTitle, spreadsheetId);
+
+  // Clear existing data rows (A2:Z)
+  await fetchWithRetry(
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(`${quotedSheet}!A2:Z`)}:clear`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    }
+  ).catch(() => {});
+
+  // Write new expanded rows into A2:V...
+  const writeRes = await fetchWithRetry(
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(`${quotedSheet}!A2:V${allRows.length + 1}`)}?valueInputOption=USER_ENTERED`,
+    {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        values: allRows,
+      }),
+    }
+  );
+
+  if (!writeRes.ok) {
+    const errData = await writeRes.json().catch(() => ({}));
+    throw new Error(errData.error?.message || 'ไม่สามารถเขียนข้อมูลที่จัดระเบียบใหม่ลง Google Sheet ได้');
+  }
+
+  return { originalRecordsCount: records.length, newRowsCount: allRows.length };
+}
+
+/**
+ * Trigger restructure via Apps Script webhook
+ */
+export async function restructureViaAppsScript(scriptUrl: string): Promise<void> {
+  await fetch(scriptUrl, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: {
+      'Content-Type': 'text/plain;charset=utf-8',
+    },
+    body: JSON.stringify({ action: 'restructure' }),
+  });
+}
+
+/**
  * Format a DepositRecord into row values matching the requested columns.
- * For Column 1 (ลำดับที่): We use the Google Sheet formula `=ROW()-1`
- * so that Google's server computes the sequential number automatically
- * upon append, guaranteeing ZERO duplicates even during simultaneous concurrent writes!
+ * Single row format (แรงงานทุกคนรวมใน 1 แถว คั่นด้วย \n)
  */
 export function formatRecordToRow(record: DepositRecord, fallbackSeq: number = 1): (string | number)[] {
-  // Format separate worker columns: ID Card Numbers, Names, and Nationalities
   const workers = record.workers || [];
   let workerIdsStr = '-';
   let workerNamesStr = '-';
@@ -258,7 +355,6 @@ export function formatRecordToRow(record: DepositRecord, fallbackSeq: number = 1
     workerNationalitiesStr = workers.map((w, idx) => `${idx + 1}. ${w.nationality || '-'}`).join('\n');
   }
 
-  // Determine employer type explicitly
   const employerType = 
     record.employerType === 'company' 
       ? 'นิติบุคคล' 
@@ -266,19 +362,16 @@ export function formatRecordToRow(record: DepositRecord, fallbackSeq: number = 1
         ? 'บุคคลธรรมดา'
         : (record.companyName || record.companyId ? 'นิติบุคคล' : 'บุคคลธรรมดา');
 
-  // Format date in Buddhist Era (พ.ศ.) e.g. 01/10/2569
   const buddhistPaymentDate = formatToBuddhistDate(record.paymentDate);
-
-  // Generate current timestamp in Thai Buddhist Era format
   const timestamp = formatToBuddhistDateTime(new Date());
 
   return [
-    '=ROW()-1',                                          // 1. คอลัมน์แรก: สูตร =ROW()-1 รันลำดับที่อัตโนมัติบน Google Server ปลอดภัยจาก concurrency 100%
-    buddhistPaymentDate || '',                           // 2. วันที่ชำระเงิน (พ.ศ. เช่น 01/10/2569)
+    '=ROW()-1',                                          // 1. คอลัมน์แรก: สูตร =ROW()-1 รันลำดับที่อัตโนมัติบน Google Server
+    buddhistPaymentDate || '',                           // 2. วันที่ชำระเงิน (พ.ศ.)
     record.requestNumber || '',                          // 3. เลขที่คำขอ
     record.receiptBook || '',                            // 4. เล่มที่ใบเสร็จ
     record.receiptNumber || '',                          // 5. เลขที่ใบเสร็จ
-    employerType,                                        // 6. ประเภทนายจ้าง (บุคคลธรรมดา / นิติบุคคล)
+    employerType,                                        // 6. ประเภทนายจ้าง
     record.idCardNumber || '',                           // 7. เลขประจำตัวผู้เสียภาษี/บัตรประชาชน
     record.employerName || '',                           // 8. ชื่อนายจ้าง/สถานประกอบการ
     record.phoneNumber || '',                            // 9. เบอร์โทรศัพท์
@@ -294,8 +387,62 @@ export function formatRecordToRow(record: DepositRecord, fallbackSeq: number = 1
     record.officerName || '',                            // 19. เจ้าหน้าที่ผู้รับเงิน
     record.officerPosition || '',                        // 20. ตำแหน่งเจ้าหน้าที่
     record.notes || '',                                  // 21. หมายเหตุ
-    timestamp,                                           // 22. คอลัมน์สุดท้าย: Time stamp (พ.ศ.)
+    timestamp,                                           // 22. Timestamp
   ];
+}
+
+/**
+ * Format a DepositRecord into an array of rows.
+ * Always splits into 1 row per foreign worker (แยก 1 แถวต่อแรงงาน 1 คน อย่างเป็นระเบียบ)
+ */
+export function formatRecordToRows(
+  record: DepositRecord,
+  fallbackSeq: number = 1
+): (string | number)[][] {
+  const workers = record.workers || [];
+
+  if (workers.length <= 1) {
+    return [formatRecordToRow(record, fallbackSeq)];
+  }
+
+  const employerType = 
+    record.employerType === 'company' 
+      ? 'นิติบุคคล' 
+      : record.employerType === 'individual'
+        ? 'บุคคลธรรมดา'
+        : (record.companyName || record.companyId ? 'นิติบุคคล' : 'บุคคลธรรมดา');
+
+  const buddhistPaymentDate = formatToBuddhistDate(record.paymentDate);
+  const timestamp = formatToBuddhistDateTime(new Date());
+  const rate = record.ratePerPerson || 1000;
+
+  // แยกออกเป็น 1 แถวต่อแรงงาน 1 คน
+  return workers.map((w, idx) => {
+    return [
+      '=ROW()-1',                                          // 1. ลำดับที่
+      buddhistPaymentDate || '',                           // 2. วันที่ชำระเงิน
+      record.requestNumber || '',                          // 3. เลขที่คำขอ
+      record.receiptBook || '',                            // 4. เล่มที่ใบเสร็จ
+      record.receiptNumber || '',                          // 5. เลขที่ใบเสร็จ
+      employerType,                                        // 6. ประเภทนายจ้าง
+      record.idCardNumber || '',                           // 7. เลขประจำตัวผู้เสียภาษี/บัตรประชาชน
+      record.employerName || '',                           // 8. ชื่อนายจ้าง/สถานประกอบการ
+      record.phoneNumber || '',                            // 9. เบอร์โทรศัพท์
+      record.alienCategory || '',                          // 10. ประเภทคนต่างด้าว
+      1,                                                   // 11. จำนวนคน (1 คนต่อแถว)
+      rate,                                                // 12. อัตราต่อคน (บาท)
+      rate,                                                // 13. จำนวนเงิน (1,000 บาท ต่อแถว คำนวณ SUM ได้แม่นยำ)
+      'หนึ่งพันบาทถ้วน',                                    // 14. จำนวนเงินตัวอักษร
+      w.idCardNumber || '-',                               // 15. เลขประจำตัวคนต่างด้าว (13 หลัก)
+      w.name || '-',                                       // 16. ชื่อ-นามสกุลคนต่างด้าว
+      w.nationality || '-',                                // 17. สัญชาติ
+      record.employmentOffice || '',                       // 18. สำนักงานจัดหางานที่รับคำขอ
+      record.officerName || '',                            // 19. เจ้าหน้าที่ผู้รับเงิน
+      record.officerPosition || '',                        // 20. ตำแหน่งเจ้าหน้าที่
+      record.notes ? `${record.notes} (คนลำดับที่ ${idx + 1}/${workers.length})` : `(คนลำดับที่ ${idx + 1}/${workers.length})`, // 21. หมายเหตุ
+      timestamp,                                           // 22. Timestamp
+    ];
+  });
 }
 
 /**
@@ -309,7 +456,7 @@ export async function appendRecordToSheet(
   const sheetTitle = await getFirstSheetTitle(accessToken, spreadsheetId);
   const nextSeq = await ensureHeaders(accessToken, sheetTitle, spreadsheetId);
 
-  const rowData = formatRecordToRow(record, nextSeq);
+  const rowsData = formatRecordToRows(record, nextSeq);
   const quotedSheet = escapeSheetTitle(sheetTitle);
 
   // Use values:append without forced INSERT_ROWS so it fills the next available empty row directly
@@ -323,7 +470,7 @@ export async function appendRecordToSheet(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      values: [rowData],
+      values: rowsData,
     }),
   });
 
@@ -441,17 +588,31 @@ export function parseRowsToRecords(rows: any[][]): DepositRecord[] {
     });
   });
 
-  return validRows.map((row: any[], index: number): DepositRecord => {
+  // Group rows belonging to the same transaction (e.g. 1 employer with 3 rows of workers)
+  const groupedMap = new Map<string, { baseRow: any[]; workers: ForeignWorker[]; totalAmount: number; count: number }>();
+
+  validRows.forEach((row: any[], rowIndex: number) => {
+    const reqNum = String(row[2] || '').trim();
+    const recBook = String(row[3] || '').trim();
+    const recNum = String(row[4] || '').trim();
+    const employerId = String(row[6] || '').trim();
+
+    // Grouping key: requestNumber + receiptBook + receiptNumber + employerId
+    // If request and receipt are given, group by them. Otherwise, row is independent.
+    const groupKey = (reqNum || recNum) 
+      ? `${reqNum}_${recBook}_${recNum}_${employerId}` 
+      : `row_${rowIndex}`;
+
     const ids = (row[14] || '').split('\n').map((s: string) => s.replace(/^\d+\.\s*/, '').trim()).filter(Boolean);
     const names = (row[15] || '').split('\n').map((s: string) => s.replace(/^\d+\.\s*/, '').trim()).filter(Boolean);
     const nats = (row[16] || '').split('\n').map((s: string) => s.replace(/^\d+\.\s*/, '').trim()).filter(Boolean);
     
-    const count = parseInt(String(row[10] || '').replace(/\D/g, ''), 10) || Math.max(names.length, ids.length, 1);
-    const workers = [];
-    for (let i = 0; i < Math.max(names.length, ids.length, count); i++) {
+    const countInRow = parseInt(String(row[10] || '').replace(/\D/g, ''), 10) || Math.max(names.length, ids.length, 1);
+    const currentWorkers: ForeignWorker[] = [];
+    for (let i = 0; i < Math.max(names.length, ids.length, countInRow); i++) {
       if (names[i] || ids[i]) {
-        workers.push({
-          id: `w-sheet-${index}-${i}`,
+        currentWorkers.push({
+          id: `w-sheet-${rowIndex}-${i}`,
           idCardNumber: ids[i] || '',
           name: names[i] || '',
           nationality: nats[i] || 'เมียนมา (Myanmar)',
@@ -461,9 +622,31 @@ export function parseRowsToRecords(rows: any[][]): DepositRecord[] {
 
     const rawAmt = String(row[12] || '').replace(/,/g, '').trim();
     const parsedAmt = parseFloat(rawAmt);
-    const totalAmount = !isNaN(parsedAmt) && parsedAmt > 0 ? parsedAmt : (count * 1000);
+    const rowAmount = !isNaN(parsedAmt) && parsedAmt > 0 ? parsedAmt : (countInRow * 1000);
 
-    return {
+    if (groupedMap.has(groupKey)) {
+      const existing = groupedMap.get(groupKey)!;
+      existing.workers.push(...currentWorkers);
+      existing.totalAmount += rowAmount;
+      existing.count += countInRow;
+    } else {
+      groupedMap.set(groupKey, {
+        baseRow: row,
+        workers: currentWorkers,
+        totalAmount: rowAmount,
+        count: countInRow,
+      });
+    }
+  });
+
+  const records: DepositRecord[] = [];
+  let index = 0;
+  groupedMap.forEach((item) => {
+    const row = item.baseRow;
+    const finalCount = Math.max(item.workers.length, item.count, 1);
+    const finalAmount = item.totalAmount > 0 ? item.totalAmount : (finalCount * 1000);
+
+    records.push({
       id: `sheet-rec-${index}-${row[2] || Date.now()}`,
       paymentDate: row[1] || '',
       requestNumber: row[2] || '',
@@ -474,18 +657,21 @@ export function parseRowsToRecords(rows: any[][]): DepositRecord[] {
       employerName: row[7] || '',
       phoneNumber: row[8] || '',
       alienCategory: row[9] || '',
-      alienCount: count,
+      alienCount: finalCount,
       ratePerPerson: parseInt(String(row[11] || '').replace(/\D/g, ''), 10) || 1000,
-      totalAmount,
-      thaiBahtText: row[13] || '',
-      workers,
+      totalAmount: finalAmount,
+      thaiBahtText: item.workers.length > 1 ? numberToThaiBahtText(finalAmount) : (row[13] || numberToThaiBahtText(finalAmount)),
+      workers: item.workers,
       employmentOffice: row[17] || '',
       officerName: row[18] || '',
       officerPosition: row[19] || '',
       notes: row[20] || '',
       createdAt: row[21] || new Date().toISOString(),
-    };
+    });
+    index++;
   });
+
+  return records;
 }
 
 /**
@@ -609,11 +795,12 @@ export async function appendRecordViaAppsScript(
   scriptUrl: string,
   record: DepositRecord
 ): Promise<{ status: string }> {
-  const rowData = formatRecordToRow(record, 1);
+  const rowsData = formatRecordToRows(record, 1);
   const payload = {
-    action: 'append',
+    action: 'append_batch',
     record,
-    row: rowData,
+    rows: rowsData,
+    row: rowsData[0], // fallback for older Apps Script version
   };
 
   await fetch(scriptUrl, {

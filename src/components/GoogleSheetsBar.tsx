@@ -26,7 +26,9 @@ import {
   getAppsScriptUrl,
   setAppsScriptUrl,
   batchAppendViaAppsScript,
-  forceUpdateSheetHeaders
+  forceUpdateSheetHeaders,
+  restructureSheetDataToSingleWorkerRows,
+  restructureViaAppsScript
 } from '../services/googleSheets';
 import { DepositRecord } from '../types/deposit';
 
@@ -126,15 +128,17 @@ function doPost(e) {
       ]);
     }
     
-    var lastRow = sheet.getLastRow();
-    var row = data.row || [];
-    if (row.length > 0) {
-      row[0] = lastRow; // ลำดับที่รันอัตโนมัติตามแถว
+    // รองรับทั้งแบบแยก 1 แถวต่อแรงงาน (rows) และแบบแถวเดียวเดิม (row)
+    var rows = data.rows || (data.row ? [data.row] : []);
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      if (r && r.length > 0) {
+        r[0] = sheet.getLastRow(); // ลำดับที่รันตามแถวจริง
+        sheet.appendRow(r);
+      }
     }
     
-    sheet.appendRow(row);
-    
-    return ContentService.createTextOutput(JSON.stringify({ status: "success", row: lastRow }))
+    return ContentService.createTextOutput(JSON.stringify({ status: "success", count: rows.length }))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({ status: "error", message: err.toString() }))
@@ -177,6 +181,36 @@ function doPost(e) {
       onNotify('เปิดใช้งานโหมด Webhook แล้ว! ตอนนี้ผู้ใช้งานทุกคนสามารถบันทึกเข้า Sheet ได้ทันทีโดยไม่ต้องล็อกอิน Google');
     } else {
       onNotify('ยกเลิกโหมด Webhook แล้ว (กลับมาใช้โหมด Google Login ปกติ)');
+    }
+  };
+
+  const [isRestructuring, setIsRestructuring] = useState(false);
+
+  const handleRestructureSheet = async () => {
+    if (!window.confirm('คุณต้องการจัดระเบียบข้อมูลที่มีอยู่เดิมใน Google Sheet ให้แยกแถวเป็น 1 แถวต่อแรงงาน 1 คน ใช่หรือไม่?\n\n(ระบบจะอ่านข้อมูลเดิมทั้งหมดและแปลงแถวที่มีแรงงานซ้อนกันอยู่ออกมาเป็นแถวละ 1 คนอย่างเป็นระเบียบ)')) {
+      return;
+    }
+
+    setIsRestructuring(true);
+    try {
+      if (accessToken) {
+        const result = await restructureSheetDataToSingleWorkerRows(accessToken);
+        onNotify(`จัดระเบียบข้อมูลเดิมใน Google Sheet เรียบร้อยแล้ว (แปลงข้อมูลเป็น ${result.newRowsCount} แถว)`);
+        if (onPullFromSheet) {
+          const fresh = await fetchRecordsFromSheet(accessToken);
+          onPullFromSheet(fresh);
+        }
+      } else if (webhookUrl) {
+        await restructureViaAppsScript(webhookUrl);
+        onNotify('ส่งคำสั่งจัดระเบียบข้อมูลเดิมไปยัง Google Apps Script เรียบร้อยแล้ว');
+      } else {
+        onNotify('กรุณาเชื่อมต่อ Google Sheets หรือระบุ URL Webhook ก่อนจัดระเบียบข้อมูล');
+      }
+    } catch (err: any) {
+      console.error(err);
+      onNotify(`ไม่สามารถจัดระเบียบข้อมูลได้: ${err.message || 'โปรดลองใหม่'}`);
+    } finally {
+      setIsRestructuring(false);
     }
   };
 
@@ -512,6 +546,39 @@ function doPost(e) {
                       className="mt-1.5 w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-mono text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-purple-500"
                     />
                   </div>
+                </div>
+              </div>
+
+              {/* รูปแบบการจัดเก็บข้อมูล: 1 แถวต่อแรงงาน 1 คน (เปิดใช้งานถาวร ไม่ต้องเลือก) */}
+              <div className="bg-indigo-50/70 border border-indigo-200/90 rounded-xl p-3.5 space-y-2.5 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>ระบบจัดเก็บข้อมูลแบบ: 1 แถวต่อแรงงาน 1 คน (Row-by-Row)</span>
+                  </div>
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-300">
+                    เปิดใช้งานถาวร
+                  </span>
+                </div>
+                <div className="text-[11px] text-slate-600 leading-relaxed">
+                  เมื่อนายจ้าง 1 รายมีแรงงานหลายคน ระบบจะบันทึกและส่งออกแยกเป็นแถวละ 1 คนอัตโนมัติ 100% ข้อมูลไม่ซ้อนกันในเซลล์ เพื่อให้กรอง ค้นหา และคำนวณสูตร SUM ใน Excel/Google Sheet ได้อย่างถูกต้องแม่นยำ
+                </div>
+
+                {/* ปุ่มแปลงข้อมูลเดิมใน Google Sheet */}
+                <div className="pt-2.5 border-t border-indigo-200/60 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                  <div className="text-[11px] text-indigo-900 leading-snug">
+                    <strong className="font-semibold text-indigo-950">ข้อมูลเดิมใน Google Sheet:</strong> หากมีแถวเก่าที่ข้อมูลแรงงานยังซ้อนกันอยู่ สามารถกดปุ่มนี้เพื่อแปลงให้แยกเป็น 1 แถวต่อคนได้ทันที
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRestructureSheet}
+                    disabled={isRestructuring}
+                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer shrink-0 disabled:opacity-50"
+                    title="อ่านแถวข้อมูลเดิมใน Google Sheet และแปลงแถวที่ซ้อนกันให้แยกออกเป็น 1 แถวต่อแรงงาน 1 คน ทั้งหมด"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 text-white ${isRestructuring ? 'animate-spin' : ''}`} />
+                    <span>{isRestructuring ? 'กำลังจัดระเบียบ...' : 'แปลงข้อมูลเดิมใน Sheet ให้เป็น 1 แถวต่อคน'}</span>
+                  </button>
                 </div>
               </div>
 

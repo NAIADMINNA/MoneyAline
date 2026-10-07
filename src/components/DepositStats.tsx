@@ -140,7 +140,7 @@ const book = String(r.receiptBook || '').trim();
     }
 
     const exportedCount = exportDatabaseToCSV(records, selectedOffice);
-    const successMsg = `ส่งออกไฟล์ CSV ฐานข้อมูล (${selectedOffice}) จำนวน ${exportedCount} รายการเรียบร้อยแล้ว`;
+    const successMsg = `ส่งออกไฟล์ CSV ฐานข้อมูล (${selectedOffice}) จำนวน ${exportedCount} แถวเรียบร้อยแล้ว`;
     
     if (onExportSuccess) {
       onExportSuccess();
@@ -268,11 +268,11 @@ const book = String(r.receiptBook || '').trim();
               </button>
             </div>
 
-            {/* Export CSV Button */}
+            {/* Export CSV Button (Always 1 row per worker) */}
             <div className="sm:self-end">
               <label className="block text-[11px] font-bold text-emerald-900 mb-1 flex items-center gap-1">
                 <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-                <span>ดาวน์โหลด:</span>
+                <span>ดาวน์โหลด (แยก 1 แถวต่อคน):</span>
               </label>
               <button
                 type="button"
