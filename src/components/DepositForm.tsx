@@ -28,7 +28,9 @@ import {
   numberToThaiBahtText, 
   formatIdCard, 
   formatPhone,
-  formatToBuddhistDate
+  formatToBuddhistDate,
+  getTodayIsoDate,
+  normalizePaymentDateToIso
 } from '../utils/thaiBahtText';
 
 interface DepositFormProps {
@@ -408,8 +410,11 @@ export const DepositForm: React.FC<DepositFormProps> = ({
       ? (formData.companyId?.trim() || '')
       : (formData.individualIdCard?.trim() || '');
 
+    const chosenPaymentDate = normalizePaymentDateToIso(formData.paymentDate) || formData.paymentDate || getTodayIsoDate();
+
     const newRecord: DepositRecord = {
       ...formData,
+      paymentDate: chosenPaymentDate,
       employerType: isCompany ? 'company' : 'individual',
       employerName: determinedName,
       idCardNumber: determinedId,
@@ -422,15 +427,17 @@ export const DepositForm: React.FC<DepositFormProps> = ({
     onSave(newRecord, printImmediately);
 
     // ล้างฟอร์มทันทีเมื่อกดบันทึกตามความต้องการของผู้ใช้งาน
+    // โดยคงวันที่ที่ผู้ใช้งานเลือกไว้ เพื่อความสะดวกในการบันทึกรายการในวันนั้นอย่างต่อเนื่อง
     const savedOfficerName = formData.officerName;
     const savedOfficerPosition = formData.officerPosition;
     const savedEmploymentOffice = formData.employmentOffice;
+    const savedPaymentDate = chosenPaymentDate;
 
     const freshFormData: FormDataState = {
       requestNumber: '',
       receiptBook: '',
       receiptNumber: '',
-      paymentDate: new Date().toISOString().split('T')[0],
+      paymentDate: savedPaymentDate,
       paymentChannel: PAYMENT_CHANNELS[0] || 'โอนเงิน / KTB Corporate Online',
       employerType: 'individual',
       idCardNumber: '',
@@ -479,7 +486,7 @@ export const DepositForm: React.FC<DepositFormProps> = ({
       requestNumber: '',
       receiptBook: '',
       receiptNumber: '',
-      paymentDate: new Date().toISOString().split('T')[0],
+      paymentDate: getTodayIsoDate(),
       paymentChannel: PAYMENT_CHANNELS[0] || 'โอนเงิน / KTB Corporate Online',
       employerType: 'individual',
       idCardNumber: '',
@@ -677,11 +684,11 @@ export const DepositForm: React.FC<DepositFormProps> = ({
                 <div className="relative">
                   <input
                     type="date"
-                    value={formData.paymentDate}
+                    value={normalizePaymentDateToIso(formData.paymentDate) || formData.paymentDate || ''}
                     onChange={(e) => handleInputChange('paymentDate', e.target.value)}
                     className={`w-full px-3.5 py-2 text-sm rounded-lg border ${
                       errors.paymentDate ? 'border-red-400 bg-red-50/30' : 'border-slate-300'
-                    } focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all`}
+                    } focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all font-mono`}
                   />
                   <Calendar className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>

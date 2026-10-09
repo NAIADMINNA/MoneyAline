@@ -1,7 +1,7 @@
 import React from 'react';
 import { X, Printer, Download, Share2, CheckCircle2 } from 'lucide-react';
 import { DepositRecord } from '../types/deposit';
-import { formatThaiCurrency, formatNumber } from '../utils/thaiBahtText';
+import { formatThaiCurrency, formatNumber, formatThaiDate } from '../utils/thaiBahtText';
 
 interface DepositReceiptModalProps {
   record: DepositRecord | null;
@@ -13,21 +13,6 @@ export const DepositReceiptModal: React.FC<DepositReceiptModalProps> = ({ record
 
   const handlePrint = () => {
     window.print();
-  };
-
-  // Format Thai date e.g. 30 กันยายน 2569
-  const formatThaiDate = (dateStr: string) => {
-    if (!dateStr) return '';
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return dateStr;
-    const months = [
-      'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
-      'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
-    ];
-    const day = date.getDate();
-    const month = months[date.getMonth()];
-    const buddhistYear = date.getFullYear() + 543;
-    return `${day} ${month} ${buddhistYear}`;
   };
 
   return (

@@ -99,7 +99,7 @@ export const GoogleSheetsBar: React.FC<GoogleSheetsBarProps> = ({
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = ss.getActiveSheet();
-    var data = sheet.getDataRange().getValues();
+    var data = sheet.getDataRange().getDisplayValues();
     // ตัดแถวหัวตารางออก
     var rows = data.length > 1 ? data.slice(1) : [];
     return ContentService.createTextOutput(JSON.stringify({ status: "success", values: rows }))

@@ -1,5 +1,10 @@
 import { DepositRecord, ForeignWorker } from '../types/deposit';
-import { formatToBuddhistDate, formatToBuddhistDateTime, numberToThaiBahtText } from '../utils/thaiBahtText';
+import { 
+  formatToBuddhistDate, 
+  formatToBuddhistDateTime, 
+  numberToThaiBahtText,
+  normalizePaymentDateToIso 
+} from '../utils/thaiBahtText';
 import { clearExpiredToken } from './googleAuth';
 
 export const WORKER_STORAGE_MODE_KEY = 'doe_worker_storage_mode';
@@ -648,7 +653,7 @@ export function parseRowsToRecords(rows: any[][]): DepositRecord[] {
 
     records.push({
       id: `sheet-rec-${index}-${row[2] || Date.now()}`,
-      paymentDate: row[1] || '',
+      paymentDate: normalizePaymentDateToIso(row[1]) || String(row[1] || '').trim(),
       requestNumber: row[2] || '',
       receiptBook: row[3] || '',
       receiptNumber: row[4] || '',
@@ -741,9 +746,11 @@ export async function fetchRecordsFromSheet(
           const parsed = JSON.parse(match[1]);
           if (parsed.table && Array.isArray(parsed.table.rows)) {
             const rows = parsed.table.rows.map((r: any) =>
-              (r.c || []).map((cell: any) =>
-                cell && cell.v !== undefined && cell.v !== null ? cell.v : ''
-              )
+              (r.c || []).map((cell: any) => {
+                if (!cell) return '';
+                if (cell.f !== undefined && cell.f !== null) return cell.f;
+                return cell.v !== undefined && cell.v !== null ? cell.v : '';
+              })
             );
             return parseRowsToRecords(rows);
           }

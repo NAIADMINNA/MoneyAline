@@ -1,5 +1,5 @@
 import { DepositRecord, FormDataState } from '../types/deposit';
-import { numberToThaiBahtText } from '../utils/thaiBahtText';
+import { numberToThaiBahtText, getTodayIsoDate } from '../utils/thaiBahtText';
 
 export const PAYMENT_CHANNELS = [
   'โอนเงิน / KTB Corporate Online',
@@ -125,7 +125,7 @@ export const DEFAULT_FORM_DATA: FormDataState = {
   requestNumber: '',
   receiptBook: '',
   receiptNumber: '',
-  paymentDate: new Date().toISOString().split('T')[0],
+  paymentDate: getTodayIsoDate(),
   paymentChannel: 'โอนเงิน / KTB Corporate Online',
   employerType: 'individual',
   idCardNumber: '',

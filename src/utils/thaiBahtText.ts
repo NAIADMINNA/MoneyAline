@@ -155,24 +155,167 @@ function convertTensGroup(num: number): string {
   return text;
 }
 
+export const THAI_MONTH_NAMES = [
+  'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+  'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+];
+
 /**
- * Convert Date or YYYY-MM-DD string to Thai Buddhist Era date format (DD/MM/BBBB)
- * Example: '2026-10-01' -> '01/10/2569'
+ * Get current date in local timezone as YYYY-MM-DD
+ * (Never suffers from UTC midnight offset shifts)
+ */
+export function getTodayIsoDate(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+export interface ParsedDateInfo {
+  day: number;
+  month: number; // 1-12
+  yearCE: number; // e.g. 2026
+  yearBE: number; // e.g. 2569
+  isoDate: string; // YYYY-MM-DD
+  buddhistDate: string; // DD/MM/BBBB e.g. 08/10/2569
+  thaiFullDate: string; // e.g. 8 ตุลาคม 2569
+}
+
+/**
+ * Robustly parses any date representation without timezone distortion
+ * Handles:
+ *  - YYYY-MM-DD (e.g. '2026-10-08')
+ *  - DD/MM/BBBB (e.g. '08/10/2569')
+ *  - DD/MM/YYYY (e.g. '08/10/2026')
+ *  - ISO strings ('2026-10-08T...')
+ *  - Google Viz Date(2026,9,8)
+ */
+export function parseDateParts(dateInput: any): ParsedDateInfo | null {
+  if (!dateInput) return null;
+  const rawStr = String(dateInput).trim();
+  if (!rawStr) return null;
+
+  const pad = (n: number) => String(n).padStart(2, '0');
+
+  // Case 1: YYYY-MM-DD or ISO string starting with YYYY-MM-DD
+  const isoMatch = rawStr.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (isoMatch) {
+    let year = parseInt(isoMatch[1], 10);
+    const month = parseInt(isoMatch[2], 10);
+    const day = parseInt(isoMatch[3], 10);
+    const yearCE = year < 2400 ? year : year - 543;
+    const yearBE = year < 2400 ? year + 543 : year;
+    const monthName = THAI_MONTH_NAMES[month - 1] || '';
+
+    return {
+      day,
+      month,
+      yearCE,
+      yearBE,
+      isoDate: `${yearCE}-${pad(month)}-${pad(day)}`,
+      buddhistDate: `${pad(day)}/${pad(month)}/${yearBE}`,
+      thaiFullDate: `${day} ${monthName} ${yearBE}`,
+    };
+  }
+
+  // Case 2: DD/MM/YYYY or DD/MM/BBBB (with / or - or .)
+  const slashMatch = rawStr.match(/^(\d{1,2})[\/\.-](\d{1,2})[\/\.-](\d{4})/);
+  if (slashMatch) {
+    const day = parseInt(slashMatch[1], 10);
+    const month = parseInt(slashMatch[2], 10);
+    let year = parseInt(slashMatch[3], 10);
+    const yearCE = year < 2400 ? year : year - 543;
+    const yearBE = year < 2400 ? year + 543 : year;
+    const monthName = THAI_MONTH_NAMES[month - 1] || '';
+
+    return {
+      day,
+      month,
+      yearCE,
+      yearBE,
+      isoDate: `${yearCE}-${pad(month)}-${pad(day)}`,
+      buddhistDate: `${pad(day)}/${pad(month)}/${yearBE}`,
+      thaiFullDate: `${day} ${monthName} ${yearBE}`,
+    };
+  }
+
+  // Case 3: Google Visualization Date(yyyy, m, d)
+  const gvizMatch = rawStr.match(/^Date\((\d{4}),\s*(\d{1,2}),\s*(\d{1,2})\)/);
+  if (gvizMatch) {
+    let year = parseInt(gvizMatch[1], 10);
+    const month = parseInt(gvizMatch[2], 10) + 1; // 0-indexed in GViz
+    const day = parseInt(gvizMatch[3], 10);
+    const yearCE = year < 2400 ? year : year - 543;
+    const yearBE = year < 2400 ? year + 543 : year;
+    const monthName = THAI_MONTH_NAMES[month - 1] || '';
+
+    return {
+      day,
+      month,
+      yearCE,
+      yearBE,
+      isoDate: `${yearCE}-${pad(month)}-${pad(day)}`,
+      buddhistDate: `${pad(day)}/${pad(month)}/${yearBE}`,
+      thaiFullDate: `${day} ${monthName} ${yearBE}`,
+    };
+  }
+
+  // Case 4: Try standard Date object parsing if valid
+  const parsed = new Date(rawStr);
+  if (!isNaN(parsed.getTime())) {
+    const day = parsed.getDate();
+    const month = parsed.getMonth() + 1;
+    const year = parsed.getFullYear();
+    const yearCE = year < 2400 ? year : year - 543;
+    const yearBE = year < 2400 ? year + 543 : year;
+    const monthName = THAI_MONTH_NAMES[month - 1] || '';
+
+    return {
+      day,
+      month,
+      yearCE,
+      yearBE,
+      isoDate: `${yearCE}-${pad(month)}-${pad(day)}`,
+      buddhistDate: `${pad(day)}/${pad(month)}/${yearBE}`,
+      thaiFullDate: `${day} ${monthName} ${yearBE}`,
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Convert any date input to Thai Buddhist Era date format (DD/MM/BBBB)
+ * Example: '2026-10-08' -> '08/10/2569'
+ * Example: '08/10/2569' -> '08/10/2569'
  */
 export function formatToBuddhistDate(dateStr: string): string {
   if (!dateStr) return '';
-  const trimmed = dateStr.trim();
-  const match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (match) {
-    let year = parseInt(match[1], 10);
-    const month = match[2];
-    const day = match[3];
-    if (year < 2400) {
-      year += 543;
-    }
-    return `${day}/${month}/${year}`;
-  }
-  return trimmed;
+  const parsed = parseDateParts(dateStr);
+  return parsed ? parsed.buddhistDate : String(dateStr).trim();
+}
+
+/**
+ * Convert any date input to Full Thai Official format
+ * Example: '2026-10-08' -> '8 ตุลาคม 2569'
+ * Example: '08/10/2569' -> '8 ตุลาคม 2569'
+ */
+export function formatThaiDate(dateStr: string): string {
+  if (!dateStr) return '';
+  const parsed = parseDateParts(dateStr);
+  return parsed ? parsed.thaiFullDate : String(dateStr).trim();
+}
+
+/**
+ * Normalizes any date input into strict ISO YYYY-MM-DD
+ * Example: '08/10/2569' -> '2026-10-08'
+ * Example: '2026-10-08' -> '2026-10-08'
+ */
+export function normalizePaymentDateToIso(dateStr: string): string {
+  if (!dateStr) return '';
+  const parsed = parseDateParts(dateStr);
+  return parsed ? parsed.isoDate : String(dateStr).trim();
 }
 
 /**
