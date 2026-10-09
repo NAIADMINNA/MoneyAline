@@ -11,7 +11,8 @@ import {
   AlertCircle,
   Plus,
   Trash2,
-  Building2
+  Building2,
+  HelpCircle
 } from 'lucide-react';
 import { FormDataState, DepositRecord, ForeignWorker } from '../types/deposit';
 import { 
@@ -308,7 +309,7 @@ export const DepositForm: React.FC<DepositFormProps> = ({
 
   const fillExampleFromImage = () => {
     setFormData({
-      requestNumber: '69-09-0006',
+      requestNumber: '69144400861000',
       receiptBook: '012',
       receiptNumber: '000546',
       paymentDate: '2026-09-30',
@@ -623,14 +624,19 @@ export const DepositForm: React.FC<DepositFormProps> = ({
 
               {/* เลขที่คำขอ */}
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1.5">
-                  เลขที่คำขอ <span className="text-red-500">*</span>
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-medium text-slate-700">
+                    เลขที่คำขอ <span className="text-red-500">*</span>
+                  </label>
+                  <span className="text-[14px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#efe321] text-[#d71b0c]">
+                    (เช่น 69144400861000)
+                  </span>
+                </div>
                 <input
                   type="text"
                   value={formData.requestNumber}
                   onChange={(e) => handleInputChange('requestNumber', e.target.value)}
-                  placeholder="เช่น 69-09-0006"
+                  placeholder="เช่น 69144400861000"
                   className={`w-full px-3.5 py-2 text-sm rounded-lg border ${
                     errors.requestNumber ? 'border-red-400 bg-red-50/30' : 'border-slate-300'
                   } focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all font-mono`}
@@ -1042,9 +1048,9 @@ export const DepositForm: React.FC<DepositFormProps> = ({
                 <button
                   type="button"
                   onClick={handleAddWorker}
-                  className="w-full py-1.5 px-3 rounded-lg border border-dashed border-blue-300 bg-blue-50/50 hover:bg-blue-100/70 text-blue-700 text-xs font-medium flex items-center justify-center gap-1.5 transition cursor-pointer active:scale-98"
+                  className="w-full py-2 px-3 rounded-lg border border-dashed border-blue-300 bg-blue-50/50 hover:bg-blue-100/70 text-blue-700 text-[15px] font-bold flex items-center justify-center gap-1.5 transition cursor-pointer active:scale-98"
                 >
-                  <Plus className="w-3.5 h-3.5" />
+                  <Plus className="w-4 h-4" />
                   <span>เพิ่มรายชื่อแรงงาน (คนที่ {(formData.workers?.length || 0) + 1})</span>
                 </button>
               </div>
