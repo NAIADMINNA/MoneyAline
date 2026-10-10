@@ -16,7 +16,8 @@ import {
   X,
   Globe,
   EyeOff,
-  RotateCcw
+  RotateCcw,
+  Hash
 } from 'lucide-react';
 import { User } from 'firebase/auth';
 import { 
@@ -31,6 +32,13 @@ import {
   restructureViaAppsScript
 } from '../services/googleSheets';
 import { DepositRecord } from '../types/deposit';
+import { 
+  getRequestNumberConfig, 
+  saveRequestNumberConfig, 
+  generateSampleRequestNumber, 
+  RequestNumberConfig, 
+  DEFAULT_REQUEST_CONFIG 
+} from '../utils/requestNumberConfig';
 
 interface GoogleSheetsBarProps {
   user: User | null;
@@ -88,6 +96,28 @@ export const GoogleSheetsBar: React.FC<GoogleSheetsBarProps> = ({
   const [inputUrl, setInputUrl] = useState('');
   const [copiedCode, setCopiedCode] = useState(false);
   const [webhookUrl, setWebhookState] = useState<string | null>(() => getAppsScriptUrl());
+
+  // Request number configuration state
+  const [reqConfig, setReqConfig] = useState<RequestNumberConfig>(() => getRequestNumberConfig());
+  const [inputPrefix, setInputPrefix] = useState(reqConfig.prefix);
+  const [inputLength, setInputLength] = useState<number | string>(reqConfig.length);
+  const [inputEnabled, setInputEnabled] = useState(reqConfig.enabled);
+
+  useEffect(() => {
+    if (showWebhookModal) {
+      const current = getRequestNumberConfig();
+      setReqConfig(current);
+      setInputPrefix(current.prefix);
+      setInputLength(current.length);
+      setInputEnabled(current.enabled);
+    }
+  }, [showWebhookModal]);
+
+  const handleResetReqConfig = () => {
+    setInputPrefix(DEFAULT_REQUEST_CONFIG.prefix);
+    setInputLength(DEFAULT_REQUEST_CONFIG.length);
+    setInputEnabled(DEFAULT_REQUEST_CONFIG.enabled);
+  };
 
   useEffect(() => {
     setInputUrl(webhookUrl || '');
@@ -176,11 +206,24 @@ function doPost(e) {
     setAppsScriptUrl(trimmed || null);
     setWebhookState(trimmed || null);
     if (onWebhookChange) onWebhookChange(trimmed || null);
+
+    // บันทึกการกำหนดเงื่อนไขเลขที่คำขอ (Request Number Format Configuration)
+    const parsedLength = Number(inputLength);
+    const validLength = isNaN(parsedLength) || parsedLength <= 0 ? DEFAULT_REQUEST_CONFIG.length : parsedLength;
+    const cleanPrefix = (inputPrefix || '').trim() || DEFAULT_REQUEST_CONFIG.prefix;
+    const finalConfig: RequestNumberConfig = {
+      prefix: cleanPrefix,
+      length: Math.max(cleanPrefix.length, validLength),
+      enabled: inputEnabled,
+    };
+    saveRequestNumberConfig(finalConfig);
+    setReqConfig(finalConfig);
+
     setShowWebhookModal(false);
     if (trimmed) {
-      onNotify('เปิดใช้งานโหมด Webhook แล้ว! ตอนนี้ผู้ใช้งานทุกคนสามารถบันทึกเข้า Sheet ได้ทันทีโดยไม่ต้องล็อกอิน Google');
+      onNotify(`บันทึกการตั้งค่า Webhook และกำหนดเลขที่คำขอ (ขึ้นต้นด้วย "${finalConfig.prefix}" จำนวน ${finalConfig.length} หลัก) เรียบร้อยแล้ว!`);
     } else {
-      onNotify('ยกเลิกโหมด Webhook แล้ว (กลับมาใช้โหมด Google Login ปกติ)');
+      onNotify(`บันทึกการกำหนดเลขที่คำขอ (ขึ้นต้นด้วย "${finalConfig.prefix}" จำนวน ${finalConfig.length} หลัก) เรียบร้อยแล้ว`);
     }
   };
 
@@ -545,6 +588,99 @@ function doPost(e) {
                       placeholder="https://script.google.com/macros/s/AKfycb.../exec"
                       className="mt-1.5 w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-mono text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-purple-500"
                     />
+                  </div>
+                </div>
+              </div>
+
+              {/* กำหนดสิทธิ์รูปแบบเลขที่คำขอ: ขึ้นต้นแบบไหน และจำนวนกี่หลัก */}
+              <div className="bg-amber-50/70 border border-amber-200/90 rounded-xl p-3.5 space-y-3 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                    <Hash className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>กำหนดสิทธิ์รูปแบบเลขที่คำขอ (Request Number Settings)</span>
+                  </div>
+                  <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
+                    {inputEnabled ? 'เปิดการบังคับตรวจสอบ' : 'ปิดการบังคับตรวจ'}
+                  </span>
+                </div>
+
+                <div className="text-[11px] text-amber-900 leading-relaxed">
+                  กำหนดตัวเลขคำขอว่าต้องขึ้นต้นด้วยรูปแบบใด และเป็นตัวเลขจำนวนกี่หลัก เพื่อป้องกันเจ้าหน้าที่คีย์ข้อมูลผิดพลาด
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  {/* ตัวเลขคำขอขึ้นต้น */}
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                      ตัวเลขคำขอต้องขึ้นต้นด้วย (Prefix):
+                    </label>
+                    <input
+                      type="text"
+                      value={inputPrefix}
+                      onChange={(e) => setInputPrefix(e.target.value.replace(/\D/g, ''))}
+                      placeholder="เช่น 691"
+                      className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-mono font-bold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-amber-500"
+                    />
+                    <span className="text-[10px] text-slate-500 mt-0.5 block">
+                      ค่าเริ่มต้นคือ <strong>691</strong> (ระบุเฉพาะตัวเลข)
+                    </span>
+                  </div>
+
+                  {/* จำนวนหลักทั้งหมด */}
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                      จำนวนหลักทั้งหมด (Total Digits):
+                    </label>
+                    <input
+                      type="number"
+                      min={Math.max(1, inputPrefix.length)}
+                      max={30}
+                      value={inputLength}
+                      onChange={(e) => setInputLength(Number(e.target.value) || '')}
+                      placeholder="เช่น 14"
+                      className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-mono font-bold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-amber-500"
+                    />
+                    <span className="text-[10px] text-slate-500 mt-0.5 block">
+                      ค่าเริ่มต้นคือ <strong>14</strong> หลัก
+                    </span>
+                  </div>
+                </div>
+
+                {/* แถบตัวอย่าง Preview & Action */}
+                <div className="bg-white/95 border border-amber-200 rounded-lg p-2.5 flex items-center justify-between flex-wrap gap-2 text-xs">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[11px] text-slate-600 font-medium">ตัวอย่างเลขคำขอ:</span>
+                    <span className="font-mono font-bold px-2 py-0.5 rounded text-[13px] bg-[#efe321] text-[#d71b0c] border border-amber-300 shadow-2xs">
+                      {generateSampleRequestNumber({
+                        prefix: inputPrefix || '691',
+                        length: Number(inputLength) || 14,
+                        enabled: inputEnabled,
+                      })}
+                    </span>
+                    <span className="text-[11px] text-slate-600 font-mono">
+                      ({Number(inputLength) || 14} หลัก)
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <label className="inline-flex items-center gap-1.5 text-[11px] text-slate-700 font-medium cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={inputEnabled}
+                        onChange={(e) => setInputEnabled(e.target.checked)}
+                        className="rounded border-slate-300 text-amber-600 focus:ring-amber-500"
+                      />
+                      <span>บังคับตรวจ</span>
+                    </label>
+
+                    <button
+                      type="button"
+                      onClick={handleResetReqConfig}
+                      className="text-[11px] text-amber-800 hover:text-amber-950 font-medium underline cursor-pointer"
+                      title="คืนค่าเป็นขึ้นต้น 691 จำนวน 14 หลัก"
+                    >
+                      คืนค่าเริ่มต้น (691/14)
+                    </button>
                   </div>
                 </div>
               </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   FileText, 
   User, 
@@ -33,6 +33,13 @@ import {
   getTodayIsoDate,
   normalizePaymentDateToIso
 } from '../utils/thaiBahtText';
+import { 
+  getRequestNumberConfig, 
+  generateSampleRequestNumber, 
+  validateRequestNumber, 
+  REQUEST_CONFIG_EVENT, 
+  RequestNumberConfig 
+} from '../utils/requestNumberConfig';
 
 interface DepositFormProps {
   onSave: (record: DepositRecord, printImmediately: boolean) => void;
@@ -75,6 +82,17 @@ export const DepositForm: React.FC<DepositFormProps> = ({
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Dynamic request number configuration from Webhook settings
+  const [reqConfig, setReqConfig] = useState<RequestNumberConfig>(() => getRequestNumberConfig());
+
+  useEffect(() => {
+    const handleConfigChange = () => {
+      setReqConfig(getRequestNumberConfig());
+    };
+    window.addEventListener(REQUEST_CONFIG_EVENT, handleConfigChange);
+    return () => window.removeEventListener(REQUEST_CONFIG_EVENT, handleConfigChange);
+  }, []);
+
   const totalAmount = (formData.alienCount || 0) * (formData.ratePerPerson || 1000);
   const thaiBahtText = numberToThaiBahtText(totalAmount);
 
@@ -91,6 +109,14 @@ export const DepositForm: React.FC<DepositFormProps> = ({
         return copy;
       });
     }
+  };
+
+  const handleRequestNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // กรองเฉพาะตัวเลข และจำกัดความยาวสูงสุดตามที่กำหนดใน จัดการ Webhook
+    const digitsOnly = e.target.value.replace(/\D/g, '');
+    const maxDigits = reqConfig.length || 14;
+    const truncated = digitsOnly.slice(0, maxDigits);
+    handleInputChange('requestNumber', truncated);
   };
 
   const handleIndividualIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -308,8 +334,9 @@ export const DepositForm: React.FC<DepositFormProps> = ({
   };
 
   const fillExampleFromImage = () => {
+    const sampleReq = generateSampleRequestNumber(reqConfig);
     setFormData({
-      requestNumber: '69144400861000',
+      requestNumber: sampleReq,
       receiptBook: '012',
       receiptNumber: '000546',
       paymentDate: '2026-09-30',
@@ -343,7 +370,13 @@ export const DepositForm: React.FC<DepositFormProps> = ({
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
-    if (!formData.requestNumber.trim()) newErrors.requestNumber = 'กรุณากรอกเลขที่คำขอ';
+
+    // ตรวจสอบเลขที่คำขอ (Request Number) ตามเงื่อนไขที่กำหนดในเมนู จัดการ Webhook
+    const reqValidation = validateRequestNumber(formData.requestNumber, reqConfig);
+    if (!reqValidation.isValid && reqValidation.error) {
+      newErrors.requestNumber = reqValidation.error;
+    }
+
     if (!formData.receiptBook.trim()) newErrors.receiptBook = 'กรุณากรอกเล่มที่ใบเสร็จ';
     if (!formData.receiptNumber.trim()) newErrors.receiptNumber = 'กรุณากรอกเลขที่ใบเสร็จ';
     if (!formData.paymentDate) newErrors.paymentDate = 'กรุณาเลือกวันที่ชำระเงิน';
@@ -628,19 +661,50 @@ export const DepositForm: React.FC<DepositFormProps> = ({
                   <label className="text-xs font-medium text-slate-700">
                     เลขที่คำขอ <span className="text-red-500">*</span>
                   </label>
-                  <span className="text-[14px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#efe321] text-[#d71b0c]">
-                    (เช่น 69144400861000)
+                  <span className="text-[14px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#efe321] text-[#d71b0c] shadow-2xs">
+                    (เช่น {generateSampleRequestNumber(reqConfig)})
                   </span>
                 </div>
-                <input
-                  type="text"
-                  value={formData.requestNumber}
-                  onChange={(e) => handleInputChange('requestNumber', e.target.value)}
-                  placeholder="เช่น 69144400861000"
-                  className={`w-full px-3.5 py-2 text-sm rounded-lg border ${
-                    errors.requestNumber ? 'border-red-400 bg-red-50/30' : 'border-slate-300'
-                  } focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all font-mono`}
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={reqConfig.length || 14}
+                    value={formData.requestNumber}
+                    onChange={handleRequestNumberChange}
+                    placeholder={`เช่น ${generateSampleRequestNumber(reqConfig)}`}
+                    className={`w-full px-3.5 py-2 text-sm rounded-lg border pr-14 ${
+                      errors.requestNumber ? 'border-red-400 bg-red-50/30 ring-1 ring-red-400' : 'border-slate-300'
+                    } focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all font-mono`}
+                  />
+                  {formData.requestNumber && (
+                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[11px] font-mono pointer-events-none">
+                      <span className={`${
+                        formData.requestNumber.length === reqConfig.length && (!reqConfig.prefix || formData.requestNumber.startsWith(reqConfig.prefix))
+                          ? 'text-emerald-700 font-bold bg-emerald-50 px-1 py-0.5 rounded border border-emerald-200'
+                          : 'text-slate-400 bg-slate-50 px-1 py-0.5 rounded'
+                      }`}>
+                        {formData.requestNumber.length}/{reqConfig.length}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                {errors.requestNumber ? (
+                  <p className="mt-1 text-xs text-red-600 flex items-center gap-1 animate-in fade-in">
+                    <span>⚠️</span>
+                    <span>{errors.requestNumber}</span>
+                  </p>
+                ) : (
+                  <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500">
+                    <span>
+                      {reqConfig.enabled ? (
+                        <>ต้องเป็นตัวเลขขึ้นต้นด้วย <strong className="text-blue-700 font-bold">{reqConfig.prefix}</strong> และมี <strong className="text-blue-700 font-bold">{reqConfig.length}</strong> หลัก</>
+                      ) : (
+                        <span>ระบุเลขที่คำขอ</span>
+                      )}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* เล่มที่ใบเสร็จ & เลขที่ใบเสร็จ */}
