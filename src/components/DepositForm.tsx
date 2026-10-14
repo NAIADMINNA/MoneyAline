@@ -112,11 +112,76 @@ export const DepositForm: React.FC<DepositFormProps> = ({
   };
 
   const handleRequestNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // กรองเฉพาะตัวเลข และจำกัดความยาวสูงสุดตามที่กำหนดใน จัดการ Webhook
+    // กรองเฉพาะตัวเลขเท่านั้น
     const digitsOnly = e.target.value.replace(/\D/g, '');
-    const maxDigits = reqConfig.length || 14;
-    const truncated = digitsOnly.slice(0, maxDigits);
+    const prefix = reqConfig.prefix || '691';
+    const targetLength = reqConfig.length || 14;
+
+    // หากล้างข้อมูลในช่อง
+    if (!digitsOnly) {
+      handleInputChange('requestNumber', '');
+      return;
+    }
+
+    // จำกัดจำนวนไม่เกิน targetLength (14 หลัก)
+    const truncated = digitsOnly.slice(0, targetLength);
+
+    // จำกัดว่าตัวเลขที่พิมพ์ต้องขึ้นต้นด้วย 691 (หรือ prefix ตามที่กำหนด)
+    if (reqConfig.enabled && prefix) {
+      // ตรวจสอบว่าหลักที่กำลังพิมพ์ตรงกับ prefix หรือไม่
+      const expectedPrefixSlice = prefix.slice(0, truncated.length);
+      if (!truncated.startsWith(expectedPrefixSlice)) {
+        // หากตัวเลขที่พิมพ์ไม่ตรงกับเลขขึ้นต้นที่กำหนด เช่น กดเลขอื่นที่ไม่ใช่ 691
+        setErrors(prev => ({
+          ...prev,
+          requestNumber: `เลขที่คำขอต้องขึ้นต้นด้วย "${prefix}" และต้องมีจำนวน ${targetLength} หลักเท่านั้น`,
+        }));
+        return; // ปฏิเสธการพิมพ์ ไม่รับค่านั้น
+      }
+    }
+
+    // บันทึกค่าที่ผ่านการตรวจสอบ
     handleInputChange('requestNumber', truncated);
+
+    // เคลียร์ error ทันทีหากถูกต้องหรือกำลังพิมพ์ถูกต้อง
+    if (truncated.length === targetLength) {
+      setErrors(prev => {
+        const copy = { ...prev };
+        delete copy.requestNumber;
+        return copy;
+      });
+    } else if (errors.requestNumber && prefix && truncated.startsWith(prefix)) {
+      setErrors(prev => {
+        const copy = { ...prev };
+        delete copy.requestNumber;
+        return copy;
+      });
+    }
+  };
+
+  const handleRequestNumberBlur = () => {
+    const val = (formData.requestNumber || '').trim();
+    if (!val) return;
+    const prefix = reqConfig.prefix || '691';
+    const targetLength = reqConfig.length || 14;
+
+    if (val.length < targetLength) {
+      setErrors(prev => ({
+        ...prev,
+        requestNumber: `เลขที่คำขอต้องมีจำนวน ${targetLength} หลักเท่านั้น (ปัจจุบันกรอก ${val.length} หลัก)`,
+      }));
+    } else if (prefix && !val.startsWith(prefix)) {
+      setErrors(prev => ({
+        ...prev,
+        requestNumber: `เลขที่คำขอต้องขึ้นต้นด้วย "${prefix}" เท่านั้น`,
+      }));
+    } else {
+      setErrors(prev => {
+        const copy = { ...prev };
+        delete copy.requestNumber;
+        return copy;
+      });
+    }
   };
 
   const handleIndividualIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -661,9 +726,22 @@ export const DepositForm: React.FC<DepositFormProps> = ({
                   <label className="text-xs font-medium text-slate-700">
                     เลขที่คำขอ <span className="text-red-500">*</span>
                   </label>
-                  <span className="text-[14px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#efe321] text-[#d71b0c] shadow-2xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const sample = generateSampleRequestNumber(reqConfig);
+                      handleInputChange('requestNumber', sample);
+                      setErrors(prev => {
+                        const copy = { ...prev };
+                        delete copy.requestNumber;
+                        return copy;
+                      });
+                    }}
+                    title="คลิกเพื่อนำเลขตัวอย่างไปใส่ในช่องกรอก"
+                    className="text-[14px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#efe321] text-[#d71b0c] shadow-2xs hover:opacity-90 active:scale-95 transition-all cursor-pointer inline-flex items-center gap-1"
+                  >
                     (เช่น {generateSampleRequestNumber(reqConfig)})
-                  </span>
+                  </button>
                 </div>
                 <div className="relative">
                   <input
@@ -672,37 +750,65 @@ export const DepositForm: React.FC<DepositFormProps> = ({
                     maxLength={reqConfig.length || 14}
                     value={formData.requestNumber}
                     onChange={handleRequestNumberChange}
+                    onBlur={handleRequestNumberBlur}
                     placeholder={`เช่น ${generateSampleRequestNumber(reqConfig)}`}
-                    className={`w-full px-3.5 py-2 text-sm rounded-lg border pr-14 ${
-                      errors.requestNumber ? 'border-red-400 bg-red-50/30 ring-1 ring-red-400' : 'border-slate-300'
+                    className={`w-full px-3.5 py-2 text-sm rounded-lg border pr-16 ${
+                      errors.requestNumber 
+                        ? 'border-red-400 bg-red-50/30 ring-1 ring-red-400' 
+                        : formData.requestNumber.length === (reqConfig.length || 14) && (!reqConfig.prefix || formData.requestNumber.startsWith(reqConfig.prefix))
+                        ? 'border-emerald-400 bg-emerald-50/20 ring-1 ring-emerald-400'
+                        : 'border-slate-300'
                     } focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all font-mono`}
                   />
-                  {formData.requestNumber && (
-                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[11px] font-mono pointer-events-none">
+                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[11px] font-mono">
+                    {formData.requestNumber ? (
                       <span className={`${
-                        formData.requestNumber.length === reqConfig.length && (!reqConfig.prefix || formData.requestNumber.startsWith(reqConfig.prefix))
-                          ? 'text-emerald-700 font-bold bg-emerald-50 px-1 py-0.5 rounded border border-emerald-200'
-                          : 'text-slate-400 bg-slate-50 px-1 py-0.5 rounded'
+                        formData.requestNumber.length === (reqConfig.length || 14) && (!reqConfig.prefix || formData.requestNumber.startsWith(reqConfig.prefix))
+                          ? 'text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-300 flex items-center gap-0.5'
+                          : 'text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded'
                       }`}>
-                        {formData.requestNumber.length}/{reqConfig.length}
+                        {formData.requestNumber.length === (reqConfig.length || 14) && '✓ '}
+                        {formData.requestNumber.length}/{reqConfig.length || 14}
                       </span>
-                    </div>
-                  )}
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const p = reqConfig.prefix || '691';
+                          handleInputChange('requestNumber', p);
+                        }}
+                        className="text-[10px] font-sans font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-1.5 py-0.5 rounded border border-blue-200 transition-colors cursor-pointer"
+                        title={`ใส่เลขขึ้นต้น ${reqConfig.prefix || '691'}`}
+                      >
+                        + ใส่ {reqConfig.prefix || '691'}
+                      </button>
+                    )}
+                  </div>
                 </div>
                 {errors.requestNumber ? (
-                  <p className="mt-1 text-xs text-red-600 flex items-center gap-1 animate-in fade-in">
+                  <p className="mt-1 text-xs text-red-600 flex items-center gap-1 animate-in fade-in font-medium">
                     <span>⚠️</span>
                     <span>{errors.requestNumber}</span>
+                  </p>
+                ) : formData.requestNumber && formData.requestNumber.length === (reqConfig.length || 14) && (!reqConfig.prefix || formData.requestNumber.startsWith(reqConfig.prefix)) ? (
+                  <p className="mt-1 text-xs text-emerald-600 flex items-center gap-1 animate-in fade-in font-medium">
+                    <span>✓</span>
+                    <span>เลขที่คำขอถูกต้อง (ขึ้นต้นด้วย {reqConfig.prefix || '691'} ครบ {reqConfig.length || 14} หลัก)</span>
                   </p>
                 ) : (
                   <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500">
                     <span>
                       {reqConfig.enabled ? (
-                        <>ต้องเป็นตัวเลขขึ้นต้นด้วย <strong className="text-blue-700 font-bold">{reqConfig.prefix}</strong> และมี <strong className="text-blue-700 font-bold">{reqConfig.length}</strong> หลัก</>
+                        <>ต้องเป็นตัวเลขขึ้นต้นด้วย <strong className="text-blue-700 font-bold">{reqConfig.prefix || '691'}</strong> และมี <strong className="text-blue-700 font-bold">{reqConfig.length || 14}</strong> หลักเท่านั้น</>
                       ) : (
-                        <span>ระบุเลขที่คำขอ</span>
+                        <span>ระบุเลขที่คำขอ (14 หลัก)</span>
                       )}
                     </span>
+                    {formData.requestNumber && formData.requestNumber.length < (reqConfig.length || 14) && (
+                      <span className="text-amber-600 font-mono">
+                        (เหลืออีก {(reqConfig.length || 14) - formData.requestNumber.length} หลัก)
+                      </span>
+                    )}
                   </div>
                 )}
               </div>

@@ -106,7 +106,7 @@ export function validateRequestNumber(
   if (trimmed.length !== config.length) {
     return {
       isValid: false,
-      error: `เลขที่คำขอต้องมีจำนวน ${config.length} หลัก (ปัจจุบันกรอก ${trimmed.length} หลัก)`,
+      error: `เลขที่คำขอต้องมีจำนวน ${config.length} หลักเท่านั้น (ปัจจุบันกรอก ${trimmed.length} หลัก)`,
     };
   }
 
