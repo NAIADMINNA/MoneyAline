@@ -313,7 +313,7 @@ function doPost(e) {
   };
 
   return (
-    <div className="max-w-[1360px] mx-auto px-4 sm:px-6">
+    <div className="w-full max-w-[1600px] 2xl:max-w-[1720px] mx-auto px-4 sm:px-6 transition-all duration-300">
       {isAdminUnlocked && (
         <div className="bg-white rounded-xl border border-emerald-200/90 shadow-xs p-3.5 sm:p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3.5 mb-6 animate-in fade-in slide-in-from-top-2 duration-200">
         

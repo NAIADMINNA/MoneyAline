@@ -38,6 +38,7 @@ export const DepositLedger: React.FC<DepositLedgerProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [filterChannel, setFilterChannel] = useState('all');
   const [filterType, setFilterType] = useState('all');
+  const [sortOption, setSortOption] = useState<'amount-desc' | 'amount-asc' | 'date-desc' | 'date-asc' | 'workers-desc'>('amount-desc');
 
   const [recordToDelete, setRecordToDelete] = useState<DepositRecord | null>(null);
 
@@ -94,13 +95,33 @@ export const DepositLedger: React.FC<DepositLedgerProps> = ({
     });
   }, [records, searchQuery, filterChannel, filterType]);
 
+  // Sorted list according to user's selected sort order (default: amount-desc / ยอดจัดเก็บ มากไปน้อย)
+  const sortedRecords = useMemo(() => {
+    return [...filteredRecords].sort((a, b) => {
+      if (sortOption === 'amount-desc') {
+        return (b.totalAmount || 0) - (a.totalAmount || 0);
+      }
+      if (sortOption === 'amount-asc') {
+        return (a.totalAmount || 0) - (b.totalAmount || 0);
+      }
+      if (sortOption === 'workers-desc') {
+        return (b.alienCount || 0) - (a.alienCount || 0);
+      }
+      if (sortOption === 'date-asc') {
+        return new Date(a.paymentDate).getTime() - new Date(b.paymentDate).getTime();
+      }
+      // date-desc
+      return new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime();
+    });
+  }, [filteredRecords, sortOption]);
+
   // Export to CSV with UTF-8 BOM strictly matching the 22-column database structure
   const exportToCSV = () => {
-    exportDatabaseToCSV(filteredRecords, 'all');
+    exportDatabaseToCSV(sortedRecords, 'all');
   };
 
   return (
-    <div className="w-full max-w-[1360px] mx-auto space-y-4">
+    <div className="w-full max-w-[1600px] 2xl:max-w-[1720px] mx-auto space-y-4 transition-all duration-300">
       {/* Unsynced Records Alert Banner */}
       {unsyncedCount > 0 && (
         <div className="bg-amber-50 border border-amber-200/90 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-2xs">
@@ -163,10 +184,26 @@ export const DepositLedger: React.FC<DepositLedgerProps> = ({
             <option value="ค้ำประกัน">หนังสือค้ำประกัน</option>
           </select>
 
+          {/* Sort Selector */}
+          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1">
+            <ArrowUpDown className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+            <select
+              value={sortOption}
+              onChange={(e) => setSortOption(e.target.value as any)}
+              className="text-xs sm:text-sm bg-transparent text-slate-700 font-medium focus:outline-none cursor-pointer"
+            >
+              <option value="amount-desc">เรียง: ยอดจัดเก็บ (มาก ➔ น้อย)</option>
+              <option value="amount-asc">เรียง: ยอดจัดเก็บ (น้อย ➔ มาก)</option>
+              <option value="date-desc">เรียง: วันที่ (ใหม่ ➔ เก่า)</option>
+              <option value="date-asc">เรียง: วันที่ (เก่า ➔ ใหม่)</option>
+              <option value="workers-desc">เรียง: จำนวนแรงงาน (มาก ➔ น้อย)</option>
+            </select>
+          </div>
+
           {/* Export CSV button */}
           <button
             onClick={exportToCSV}
-            disabled={filteredRecords.length === 0}
+            disabled={sortedRecords.length === 0}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-medium rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 transition cursor-pointer disabled:opacity-50"
             title="ส่งออกไฟล์ Excel / CSV"
           >
@@ -187,13 +224,22 @@ export const DepositLedger: React.FC<DepositLedgerProps> = ({
                 <th className="py-3 px-4">นายจ้าง</th>
                 <th className="py-3 px-4">ข้อมูลแรงงานต่างด้าว (ชื่อ / เลข 13 หลัก / สัญชาติ)</th>
                 <th className="py-3 px-4 text-center">จำนวน (คน)</th>
-                <th className="py-3 px-4 text-right">ยอดเงินรวม</th>
+                <th 
+                  className="py-3 px-4 text-right cursor-pointer hover:bg-slate-100 transition select-none group"
+                  onClick={() => setSortOption(prev => prev === 'amount-desc' ? 'amount-asc' : 'amount-desc')}
+                  title="คลิกเพื่อสลับเรียงลำดับยอดจัดเก็บ (มาก ➔ น้อย / น้อย ➔ มาก)"
+                >
+                  <div className="inline-flex items-center gap-1">
+                    <span>ยอดเงินรวม</span>
+                    <ArrowUpDown className={`w-3.5 h-3.5 ${sortOption.startsWith('amount') ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-600'}`} />
+                  </div>
+                </th>
                 <th className="py-3 px-4 text-center">สถานะ Sheet</th>
                 <th className="py-3 px-4 text-center w-24">จัดการ</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredRecords.length === 0 ? (
+              {sortedRecords.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-12 text-center text-slate-400">
                     <div className="flex flex-col items-center justify-center gap-2">
@@ -203,7 +249,7 @@ export const DepositLedger: React.FC<DepositLedgerProps> = ({
                   </td>
                 </tr>
               ) : (
-                filteredRecords.map((item) => (
+                sortedRecords.map((item) => (
                   <tr key={item.id} className="hover:bg-blue-50/40 transition-colors group">
                     {/* วันที่ & เลขที่คำขอ */}
                     <td className="py-3.5 px-4">

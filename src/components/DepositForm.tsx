@@ -304,6 +304,21 @@ export const DepositForm: React.FC<DepositFormProps> = ({
         workers: currentWorkers,
       };
     });
+
+    if (errors[`workerName_${index}`] || errors[`workerId_${index}`] || errors.workerName || errors.workerId) {
+      setErrors(prev => {
+        const copy = { ...prev };
+        if (field === 'name') {
+          delete copy[`workerName_${index}`];
+          if (index === 0) delete copy.workerName;
+        }
+        if (field === 'idCardNumber') {
+          delete copy[`workerId_${index}`];
+          if (index === 0) delete copy.workerId;
+        }
+        return copy;
+      });
+    }
   };
 
   const applyCategoryToAllWorkers = (category: string) => {
@@ -482,14 +497,18 @@ export const DepositForm: React.FC<DepositFormProps> = ({
     if (!formData.alienCount || formData.alienCount < 1) newErrors.alienCount = 'จำนวนคนต้องมากกว่า 0';
     if (!formData.officerName.trim()) newErrors.officerName = 'กรุณากรอกชื่อเจ้าหน้าที่ผู้รับเงิน';
 
-    // Verify first foreign worker if provided
+    // Verify all foreign workers if provided
     if (formData.workers && formData.workers.length > 0) {
-      if (!formData.workers[0].name.trim()) {
-        newErrors.workerName = 'กรุณาระบุชื่อ-นามสกุลแรงงานต่างด้าว';
-      }
-      if (!formData.workers[0].idCardNumber.trim()) {
-        newErrors.workerId = 'กรุณาระบุเลขประจำตัว 13 หลักของแรงงานต่างด้าว';
-      }
+      formData.workers.forEach((w, idx) => {
+        if (!w.name.trim()) {
+          newErrors[`workerName_${idx}`] = `กรุณาระบุชื่อ-นามสกุลแรงงานต่างด้าว (คนที่ ${idx + 1})`;
+        }
+        if (!w.idCardNumber.trim()) {
+          newErrors[`workerId_${idx}`] = `กรุณาระบุเลขประจำตัว 13 หลักของแรงงานต่างด้าว (คนที่ ${idx + 1})`;
+        }
+      });
+      if (newErrors.workerName_0) newErrors.workerName = newErrors.workerName_0;
+      if (newErrors.workerId_0) newErrors.workerId = newErrors.workerId_0;
     }
 
     setErrors(newErrors);
@@ -624,7 +643,7 @@ export const DepositForm: React.FC<DepositFormProps> = ({
   };
 
   return (
-    <div className="w-full max-w-[1360px] mx-auto bg-white rounded-2xl shadow-xl border border-slate-200/80 overflow-hidden font-sans relative">
+    <div className="w-full max-w-[1600px] 2xl:max-w-[1720px] mx-auto bg-white rounded-2xl shadow-xl border border-slate-200/80 overflow-hidden font-sans relative transition-all duration-300">
       
       {/* Reset Success Notification Toast */}
       {resetSuccess && (
@@ -1110,7 +1129,7 @@ export const DepositForm: React.FC<DepositFormProps> = ({
                 </div>
 
                 {/* Worker Items List */}
-                <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+                <div className="space-y-3 max-h-[650px] overflow-y-auto pr-1">
                   {(formData.workers || []).map((worker, idx) => (
                     <div 
                       key={worker.id || idx}
@@ -1146,8 +1165,17 @@ export const DepositForm: React.FC<DepositFormProps> = ({
                           value={worker.idCardNumber}
                           onChange={(e) => handleWorkerChange(idx, 'idCardNumber', formatIdCard(e.target.value))}
                           placeholder="0-xxxx-xxxxx-xx-x"
-                          className="w-full px-3 py-1.5 text-xs rounded-md border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 font-mono transition"
+                          className={`w-full px-3 py-1.5 text-xs rounded-md border ${
+                            errors[`workerId_${idx}`] || (idx === 0 && errors.workerId)
+                              ? 'border-red-400 bg-red-50/30 ring-1 ring-red-400'
+                              : 'border-slate-300 bg-white'
+                          } focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 font-mono transition`}
                         />
+                        {(errors[`workerId_${idx}`] || (idx === 0 && errors.workerId)) && (
+                          <p className="mt-1 text-[11px] text-red-600 font-medium">
+                            {errors[`workerId_${idx}`] || errors.workerId}
+                          </p>
+                        )}
                       </div>
 
                       {/* ชื่อ-นามสกุล คนต่างด้าว (ล็อคภาษาอังกฤษพิมพ์ใหญ่เท่านั้น) */}
@@ -1168,8 +1196,17 @@ export const DepositForm: React.FC<DepositFormProps> = ({
                             handleWorkerChange(idx, 'name', upperVal);
                           }}
                           placeholder="ระบุตัวพิมพ์ใหญ่ เช่น AUNG SAN"
-                          className="w-full px-3 py-1.5 text-xs rounded-md border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 uppercase font-mono tracking-wide transition"
+                          className={`w-full px-3 py-1.5 text-xs rounded-md border ${
+                            errors[`workerName_${idx}`] || (idx === 0 && errors.workerName)
+                              ? 'border-red-400 bg-red-50/30 ring-1 ring-red-400'
+                              : 'border-slate-300 bg-white'
+                          } focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 uppercase font-mono tracking-wide transition`}
                         />
+                        {(errors[`workerName_${idx}`] || (idx === 0 && errors.workerName)) && (
+                          <p className="mt-1 text-[11px] text-red-600 font-medium">
+                            {errors[`workerName_${idx}`] || errors.workerName}
+                          </p>
+                        )}
                       </div>
 
                       {/* สัญชาติ & ประเภทแรงงาน / มติ ครม. รายคน */}

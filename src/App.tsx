@@ -8,7 +8,9 @@ import {
   Download,
   Settings2,
   RefreshCw,
-  Users
+  Users,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import { DepositRecord } from './types/deposit';
 import { INITIAL_RECORDS } from './data/initialData';
@@ -86,6 +88,30 @@ export default function App() {
   });
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showWebhookModal, setShowWebhookModal] = useState(false);
+
+  // มุมมองการแสดงผลเต็มหน้าจอ (Full Width View)
+  const [isFullWidth, setIsFullWidth] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('doe_full_width');
+      return saved === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleFullWidth = () => {
+    setIsFullWidth(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('doe_full_width', String(next));
+      } catch {}
+      return next;
+    });
+  };
+
+  const layoutContainerClass = isFullWidth 
+    ? 'w-full max-w-[98%] mx-auto transition-all duration-300' 
+    : 'w-full max-w-[1600px] 2xl:max-w-[1720px] mx-auto transition-all duration-300';
 
   // Counter tracking: ผู้เข้าใช้งาน & ผู้กดส่งออกไฟล์ (เริ่มต้นที่ 0 แท้จริง ไม่มีการจำลองตัวเลข)
   const [visitorCount, setVisitorCount] = useState<number>(() => {
@@ -227,23 +253,25 @@ export default function App() {
 
     // Auto-sync to Google Sheet:
     const webhookUrl = getAppsScriptUrl();
+    const workerCount = record.workers?.length || record.alienCount || 1;
+
     if (webhookUrl) {
-      showToast(`บันทึกคำขอเลขที่ ${record.requestNumber} แล้ว กำลังส่งลง Google Sheet...`);
+      showToast(`บันทึกคำขอเลขที่ ${record.requestNumber} แล้ว กำลังส่งลง Google Sheet (${workerCount} คน)...`);
       try {
         await appendRecordViaAppsScript(webhookUrl, record);
         savedRecord.syncedToSheet = true;
-        showToast(`บันทึกและส่งลง Google Sheet เรียบร้อยแล้ว (ผ่าน Webhook)`);
+        showToast(`บันทึกและส่งข้อมูลแรงงาน ${workerCount} คนลง Google Sheet เรียบร้อยแล้ว (ผ่าน Webhook)`);
       } catch (err: any) {
         console.error('Webhook append error:', err);
         showToast(`บันทึกในระบบแล้ว แต่ส่งเข้า Sheet ไม่สำเร็จ: ${err.message || 'โปรดลองใหม่'}`);
       }
     } else if (accessToken) {
-      showToast(`บันทึกคำขอเลขที่ ${record.requestNumber} แล้ว กำลังส่งลง Google Sheet...`);
+      showToast(`บันทึกคำขอเลขที่ ${record.requestNumber} แล้ว กำลังส่งลง Google Sheet (${workerCount} คน)...`);
       try {
         const result = await appendRecordToSheet(accessToken, record);
         savedRecord.syncedToSheet = true;
         savedRecord.sheetRow = result.sequenceNumber;
-        showToast(`บันทึกและส่งลง Google Sheet เรียบร้อยแล้ว (ลำดับที่ ${result.sequenceNumber})`);
+        showToast(`บันทึกและส่งข้อมูลแรงงาน ${workerCount} คนลง Google Sheet เรียบร้อยแล้ว (ลำดับที่ ${result.sequenceNumber})`);
       } catch (err: any) {
         console.error('Sheet append error:', err);
         const errMsg = err.message || '';
@@ -485,7 +513,7 @@ export default function App() {
       
       {/* Top Bar Contract (Single row, 3 zones) with rich government aesthetics */}
       <header className="bg-white/95 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-30 shadow-xs">
-        <div className="max-w-[1360px] mx-auto px-4 sm:px-6 h-18 flex items-center justify-between gap-4">
+        <div className={`${layoutContainerClass} px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between gap-4`}>
           
           {/* Zone 1: Wordmark / Brand with Emblem */}
           <div className="flex items-center gap-3.5">
@@ -538,6 +566,30 @@ export default function App() {
 
           {/* Zone 3: Live Status & Manage Webhook Button */}
           <div className="flex items-center gap-2.5">
+            {/* Toggle Full Width Screen Button */}
+            <button
+              type="button"
+              onClick={toggleFullWidth}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition shadow-2xs cursor-pointer active:scale-95 ${
+                isFullWidth
+                  ? 'bg-blue-600 text-white border-blue-700 shadow-blue-600/25'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
+              }`}
+              title={isFullWidth ? 'คลิกเพื่อสลับกลับเป็นมุมมองขนาดมาตรฐาน' : 'คลิกเพื่อขยายหน้าจอแสดงผลเต็มพื้นที่ 100%'}
+            >
+              {isFullWidth ? (
+                <>
+                  <Minimize2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">ย่อขนาด</span>
+                </>
+              ) : (
+                <>
+                  <Maximize2 className="w-3.5 h-3.5 text-blue-600" />
+                  <span className="hidden sm:inline">ขยายเต็มจอ</span>
+                </>
+              )}
+            </button>
+
             <button
               type="button"
               onClick={() => {
@@ -611,7 +663,7 @@ export default function App() {
 
         {activeTab === 'ledger' && (
           <div className="animate-in fade-in duration-200">
-            <div className="max-w-[1360px] mx-auto mb-4 flex items-center justify-between">
+            <div className={`${layoutContainerClass} mb-4 flex items-center justify-between`}>
               <div>
                 <h2 className="text-xl font-bold text-slate-900">
                   ทะเบียนประวัติการวางหลักประกัน
@@ -633,7 +685,7 @@ export default function App() {
 
         {activeTab === 'stats' && (
           <div className="animate-in fade-in duration-200">
-            <div className="max-w-[1360px] mx-auto mb-4 flex items-center justify-between">
+            <div className={`${layoutContainerClass} mb-4 flex items-center justify-between`}>
               <div>
                 <h2 className="text-xl font-bold text-slate-900">
                   รายงานสรุปและสถิติภาพรวม
@@ -687,7 +739,7 @@ export default function App() {
 
       {/* Footer with Counters on the Right Hand Side */}
       <footer className="bg-white border-t border-slate-200/90 py-3.5 px-4 sm:px-6">
-        <div className="max-w-[1360px] mx-auto flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+        <div className={`${layoutContainerClass} flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-slate-500`}>
           <div className="text-center md:text-left font-medium">
             ระบบบันทึกการชำระเงินค่าวางหลักประกันแรงงานต่างด้าว · กรมการจัดหางาน กระทรวงแรงงาน
           </div>

@@ -14,7 +14,8 @@ import {
   Layers,
   Sparkles,
   RefreshCw,
-  RotateCcw
+  RotateCcw,
+  ArrowDownWideNarrow
 } from 'lucide-react';
 import { DepositRecord } from '../types/deposit';
 import { formatThaiCurrency, formatNumber } from '../utils/thaiBahtText';
@@ -109,11 +110,30 @@ const book = String(r.receiptBook || '').trim();
     }, {} as Record<string, { count: number; workers: number; amount: number }>);
   }, [cleanRecords]);
 
+  // เรียงลำดับสำนักงานตามยอดจัดเก็บ ตามมากไปน้อย (descending)
+  const sortedOfficeStats = useMemo(() => {
+    return Object.entries(officeStats).sort(([, a], [, b]) => {
+      if (b.amount !== a.amount) {
+        return b.amount - a.amount; // ยอดจัดเก็บ มากไปน้อย
+      }
+      if (b.workers !== a.workers) {
+        return b.workers - a.workers;
+      }
+      return b.count - a.count;
+    });
+  }, [officeStats]);
+
   // Breakdown by alien category
-  const categoryStats = cleanRecords.reduce((acc, r) => {
-    acc[r.alienCategory] = (acc[r.alienCategory] || 0) + r.alienCount;
-    return acc;
-  }, {} as Record<string, number>);
+  const categoryStats = useMemo(() => {
+    return cleanRecords.reduce((acc, r) => {
+      acc[r.alienCategory] = (acc[r.alienCategory] || 0) + r.alienCount;
+      return acc;
+    }, {} as Record<string, number>);
+  }, [cleanRecords]);
+
+  const sortedCategoryStats = useMemo(() => {
+    return Object.entries(categoryStats).sort(([, a], [, b]) => b - a);
+  }, [categoryStats]);
 
   // Breakdown by payment channel / method
   const channelStats = cleanRecords.reduce((acc, r) => {
@@ -123,13 +143,19 @@ const book = String(r.receiptBook || '').trim();
   }, {} as Record<string, number>);
 
   // Breakdown by worker nationality
-  const nationalityStats = cleanRecords.reduce((acc, r) => {
-    (r.workers || []).forEach(w => {
-      const nat = w.nationality ? w.nationality.split('(')[0].trim() : 'ไม่ระบุ';
-      acc[nat] = (acc[nat] || 0) + 1;
-    });
-    return acc;
-  }, {} as Record<string, number>);
+  const nationalityStats = useMemo(() => {
+    return cleanRecords.reduce((acc, r) => {
+      (r.workers || []).forEach(w => {
+        const nat = w.nationality ? w.nationality.split('(')[0].trim() : 'ไม่ระบุ';
+        acc[nat] = (acc[nat] || 0) + 1;
+      });
+      return acc;
+    }, {} as Record<string, number>);
+  }, [cleanRecords]);
+
+  const sortedNationalityStats = useMemo(() => {
+    return Object.entries(nationalityStats).sort(([, a], [, b]) => b - a);
+  }, [nationalityStats]);
 
   // Handle Export CSV (strictly for the chosen employment office)
   const handleExportCSV = () => {
@@ -162,7 +188,7 @@ const book = String(r.receiptBook || '').trim();
   }, [filteredRecordsForExport]);
 
   return (
-    <div className="w-full max-w-[1360px] mx-auto space-y-6">
+    <div className="w-full max-w-[1600px] 2xl:max-w-[1720px] mx-auto space-y-6 transition-all duration-300">
 
       {/* CSV Export & Office Selector Panel (ตามที่ผู้ใช้งานร้องขอ) */}
       <div className="bg-gradient-to-br from-emerald-600/5 via-teal-500/10 to-blue-600/5 rounded-2xl border-2 border-emerald-300/80 p-5 sm:p-6 shadow-md shadow-emerald-500/5 backdrop-blur-sm relative overflow-hidden">
@@ -391,7 +417,7 @@ const book = String(r.receiptBook || '').trim();
       {/* Breakdown Panels with Vibrant Gradient Accents */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Office Breakdown (สถิติตามสำนักงานจัดหางาน) */}
+        {/* Office Breakdown (สถิติตามสำนักงานจัดหางาน - เรียงจากยอดจัดเก็บ ตามมากไปน้อย) */}
         <div className="bg-white rounded-2xl border border-slate-200/90 border-t-4 border-t-emerald-500 p-5 shadow-sm hover:shadow-md transition-shadow">
           <h4 className="text-sm font-bold text-slate-800 pb-3 border-b border-slate-100 mb-3 flex items-center justify-between">
             <span className="flex items-center gap-2">
@@ -400,21 +426,37 @@ const book = String(r.receiptBook || '').trim();
               </span>
               <span>สถิติตามสำนักงานจัดหางาน</span>
             </span>
-            <span className="text-xs text-emerald-700 font-semibold">ยอดจัดเก็บ</span>
+            <span className="inline-flex items-center gap-1 text-[11px] text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200 font-semibold shadow-2xs" title="เรียงจากยอดจัดเก็บ ตามมากไปน้อย">
+              <ArrowDownWideNarrow className="w-3.5 h-3.5 text-emerald-600" />
+              <span>ยอดจัดเก็บ (มาก ➔ น้อย)</span>
+            </span>
           </h4>
-          <div className="space-y-3.5 max-h-72 overflow-y-auto pr-1">
-            {Object.keys(officeStats).length === 0 ? (
+          <div className="space-y-3.5 max-h-[560px] overflow-y-auto pr-1">
+            {sortedOfficeStats.length === 0 ? (
               <p className="text-xs text-slate-400 py-3 text-center">ไม่มีข้อมูลสำนักงาน</p>
             ) : (
-              Object.entries(officeStats).map(([office, data]) => {
+              sortedOfficeStats.map(([office, data], index) => {
                 const pct = totalAmount > 0 ? (data.amount / totalAmount) * 100 : 0;
                 return (
                   <div key={office} className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs text-slate-700">
-                      <span className="font-semibold truncate max-w-[180px]" title={office}>
-                        {office}
-                      </span>
-                      <span className="font-mono font-bold text-slate-900">
+                    <div className="flex items-start justify-between gap-2 text-xs text-slate-700">
+                      <div className="flex items-start gap-1.5 min-w-0 flex-1">
+                        <span className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-mono font-bold shrink-0 mt-0.5 shadow-2xs ${
+                          index === 0
+                            ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                            : index === 1
+                            ? 'bg-slate-200 text-slate-800 border border-slate-300'
+                            : index === 2
+                            ? 'bg-orange-100 text-orange-900 border border-orange-300'
+                            : 'bg-slate-100 text-slate-600 border border-slate-200'
+                        }`}>
+                          {index + 1}
+                        </span>
+                        <span className="font-semibold text-slate-800 leading-snug break-words" title={office}>
+                          {office}
+                        </span>
+                      </div>
+                      <span className="font-mono font-bold text-slate-900 shrink-0 text-right">
                         {formatThaiCurrency(data.amount)} <span className="text-slate-500 font-normal">({data.workers} คน)</span>
                       </span>
                     </div>
@@ -440,20 +482,28 @@ const book = String(r.receiptBook || '').trim();
               </span>
               <span>สถิติตามสัญชาติแรงงาน</span>
             </span>
-            <span className="text-xs text-indigo-700 font-semibold">จำนวน (คน)</span>
+            <span className="inline-flex items-center gap-1 text-[11px] text-indigo-800 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-200 font-semibold shadow-2xs">
+              <ArrowDownWideNarrow className="w-3.5 h-3.5 text-indigo-600" />
+              <span>จำนวนคน (มาก ➔ น้อย)</span>
+            </span>
           </h4>
-          <div className="space-y-3.5">
-            {Object.keys(nationalityStats).length === 0 ? (
+          <div className="space-y-3.5 max-h-[560px] overflow-y-auto pr-1">
+            {sortedNationalityStats.length === 0 ? (
               <p className="text-xs text-slate-400 py-3 text-center">ไม่มีข้อมูลแรงงานในระบบ</p>
             ) : (
-              Object.entries(nationalityStats).map(([nat, count]) => {
+              sortedNationalityStats.map(([nat, count], index) => {
                 const totalNatWorkers = Object.values(nationalityStats).reduce((a, b) => a + b, 0);
                 const pct = totalNatWorkers > 0 ? (count / totalNatWorkers) * 100 : 0;
                 return (
                   <div key={nat} className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs text-slate-700">
-                      <span className="font-semibold truncate max-w-[200px]">{nat}</span>
-                      <span className="font-mono font-bold text-indigo-950">{formatNumber(count)} คน <span className="text-slate-400 font-normal">({pct.toFixed(1)}%)</span></span>
+                    <div className="flex items-start justify-between gap-2 text-xs text-slate-700">
+                      <div className="flex items-start gap-1.5 min-w-0 flex-1">
+                        <span className="w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-mono font-bold shrink-0 mt-0.5 bg-slate-100 text-indigo-900 border border-indigo-100">
+                          {index + 1}
+                        </span>
+                        <span className="font-semibold text-slate-800 leading-snug break-words">{nat}</span>
+                      </div>
+                      <span className="font-mono font-bold text-indigo-950 shrink-0 text-right">{formatNumber(count)} คน <span className="text-slate-400 font-normal">({pct.toFixed(1)}%)</span></span>
                     </div>
                     <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden p-0.5">
                       <div 
@@ -477,19 +527,27 @@ const book = String(r.receiptBook || '').trim();
               </span>
               <span>สถิติตามประเภทแรงงาน</span>
             </span>
-            <span className="text-xs text-blue-700 font-semibold">แรงงาน (คน)</span>
+            <span className="inline-flex items-center gap-1 text-[11px] text-blue-800 bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-200 font-semibold shadow-2xs">
+              <ArrowDownWideNarrow className="w-3.5 h-3.5 text-blue-600" />
+              <span>จำนวนคน (มาก ➔ น้อย)</span>
+            </span>
           </h4>
-          <div className="space-y-3.5">
-            {Object.keys(categoryStats).length === 0 ? (
+          <div className="space-y-3.5 max-h-[560px] overflow-y-auto pr-1">
+            {sortedCategoryStats.length === 0 ? (
               <p className="text-xs text-slate-400 py-3 text-center">ไม่มีข้อมูลประเภทแรงงานในระบบ</p>
             ) : (
-              Object.entries(categoryStats).map(([cat, count]) => {
+              sortedCategoryStats.map(([cat, count], index) => {
                 const pct = totalWorkers > 0 ? (count / totalWorkers) * 100 : 0;
                 return (
                   <div key={cat} className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs text-slate-700">
-                      <span className="font-semibold truncate max-w-[200px]">{cat}</span>
-                      <span className="font-mono font-bold text-blue-950">{formatNumber(count)} คน <span className="text-slate-400 font-normal">({pct.toFixed(1)}%)</span></span>
+                    <div className="flex items-start justify-between gap-2 text-xs text-slate-700">
+                      <div className="flex items-start gap-1.5 min-w-0 flex-1">
+                        <span className="w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-mono font-bold shrink-0 mt-0.5 bg-slate-100 text-blue-900 border border-blue-100">
+                          {index + 1}
+                        </span>
+                        <span className="font-semibold text-slate-800 leading-snug break-words">{cat}</span>
+                      </div>
+                      <span className="font-mono font-bold text-blue-950 shrink-0 text-right">{formatNumber(count)} คน <span className="text-slate-400 font-normal">({pct.toFixed(1)}%)</span></span>
                     </div>
                     <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden p-0.5">
                       <div 
