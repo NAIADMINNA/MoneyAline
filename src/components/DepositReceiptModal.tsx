@@ -187,6 +187,12 @@ export const DepositReceiptModal: React.FC<DepositReceiptModalProps> = ({ record
                               <span className="font-medium text-slate-900">{w.name || '-'}</span>
                               <span className="text-slate-400">·</span>
                               <span className="font-mono text-slate-700">เลข: {w.idCardNumber || '-'}</span>
+                              {w.requestNumber && (
+                                <>
+                                  <span className="text-slate-400">·</span>
+                                  <span className="font-mono text-blue-800 font-semibold">เลขคำขอ: {w.requestNumber}</span>
+                                </>
+                              )}
                               <span className="text-slate-400">·</span>
                               <span className="text-slate-700">สัญชาติ: {w.nationality || '-'}</span>
                               {w.category && (

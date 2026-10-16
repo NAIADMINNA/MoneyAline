@@ -31,6 +31,8 @@ import {
   fetchRecordsFromSheet
 } from './services/googleSheets';
 import { User } from 'firebase/auth';
+import { VersionUpdateBanner } from './components/VersionUpdateBanner';
+import { useVersionAutoUpdate } from './utils/versionCheck';
 
 const STORAGE_KEY = 'doe_foreign_worker_deposits_v2';
 
@@ -89,6 +91,17 @@ export default function App() {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showWebhookModal, setShowWebhookModal] = useState(false);
 
+  // ระบบตรวจสอบและแจ้งเตือนเวอร์ชันอัปเดตอัตโนมัติสำหรับผู้ใช้งานทุกคน
+  const {
+    hasNewVersion,
+    newVersionInfo,
+    applyUpdate,
+    dismiss: dismissUpdate,
+    checkNow: checkVersionNow,
+    isChecking: isCheckingVersion,
+    currentVersion,
+  } = useVersionAutoUpdate();
+
   // มุมมองการแสดงผลเต็มหน้าจอ (Full Width View)
   const [isFullWidth, setIsFullWidth] = useState<boolean>(() => {
     try {
@@ -113,11 +126,11 @@ export default function App() {
     ? 'w-full max-w-[98%] mx-auto transition-all duration-300' 
     : 'w-full max-w-[1600px] 2xl:max-w-[1720px] mx-auto transition-all duration-300';
 
-  // Counter tracking: ผู้เข้าใช้งาน & ผู้กดส่งออกไฟล์ (เริ่มต้นที่ 0 แท้จริง ไม่มีการจำลองตัวเลข)
+  // Counter tracking: ผู้เข้าใช้งานสะสม & ผู้กดส่งออกไฟล์สะสม (นับสะสมต่อเนื่องถาวร ไม่มีการรีเซ็ตหรือลบออกในแต่ละวัน)
   const [visitorCount, setVisitorCount] = useState<number>(() => {
     try {
-      localStorage.removeItem('doe_visitor_count'); // ล้างค่าตัวเลขจำลองเดิมออก
-      const saved = localStorage.getItem('doe_real_visitor_count');
+      localStorage.removeItem('doe_visitor_count'); // ล้างคีย์จำลองเวอร์ชันเก่า
+      const saved = localStorage.getItem('doe_all_time_visitor_count') || localStorage.getItem('doe_real_visitor_count');
       if (saved !== null) {
         const val = parseInt(saved, 10);
         return isNaN(val) ? 0 : val;
@@ -130,8 +143,8 @@ export default function App() {
 
   const [exportClickCount, setExportClickCount] = useState<number>(() => {
     try {
-      localStorage.removeItem('doe_export_count'); // ล้างค่าตัวเลขจำลองเดิมออก
-      const saved = localStorage.getItem('doe_real_export_count');
+      localStorage.removeItem('doe_export_count'); // ล้างคีย์จำลองเวอร์ชันเก่า
+      const saved = localStorage.getItem('doe_all_time_export_count') || localStorage.getItem('doe_real_export_count');
       if (saved !== null) {
         const val = parseInt(saved, 10);
         return isNaN(val) ? 0 : val;
@@ -142,7 +155,7 @@ export default function App() {
     }
   });
 
-  // นับจำนวนคนเข้าใช้งานจริง เริ่มต้นนับจาก 0
+  // นับจำนวนคนเข้าใช้งานจริง สะสมถาวรตลอดไป (ไม่มีการลบออกหรือรีเซ็ตในแต่ละวัน)
   useEffect(() => {
     try {
       const recorded = sessionStorage.getItem('doe_real_visit_session');
@@ -150,17 +163,24 @@ export default function App() {
         sessionStorage.setItem('doe_real_visit_session', 'true');
         setVisitorCount(prev => {
           const next = prev + 1;
-          try { localStorage.setItem('doe_real_visitor_count', String(next)); } catch {}
+          try { 
+            localStorage.setItem('doe_all_time_visitor_count', String(next));
+            localStorage.setItem('doe_real_visitor_count', String(next));
+          } catch {}
           return next;
         });
       }
     } catch {}
   }, []);
 
+  // นับจำนวนครั้งที่กดส่งออกไฟล์ สะสมถาวรตลอดไป (ไม่มีการลบออกหรือรีเซ็ตในแต่ละวัน)
   const handleExportSuccess = () => {
     setExportClickCount(prev => {
       const next = prev + 1;
-      try { localStorage.setItem('doe_real_export_count', String(next)); } catch {}
+      try { 
+        localStorage.setItem('doe_all_time_export_count', String(next));
+        localStorage.setItem('doe_real_export_count', String(next));
+      } catch {}
       return next;
     });
   };
@@ -288,15 +308,37 @@ export default function App() {
 
     setRecords(prev => [savedRecord, ...prev]);
 
-    // AUTO: ตรวจสอบและดึงข้อมูลอัปเดตสถิติภาพรวมทันทีหลังจากบันทึกรายการใหม่
+    // AUTO: ตรวจสอบและดึงข้อมูลอัปเดตสถิติภาพรวมหลังจากบันทึกรายการใหม่
+    // ใช้ Smart Merge เพื่อป้องกันไม่ให้ข้อมูลในเครื่องที่เพิ่งบันทึกถูกเขียนทับด้วยข้อมูลชีตที่ยังแคชอยู่
     setTimeout(() => {
       fetchRecordsFromSheet(accessToken).then((pulled) => {
         if (pulled && pulled.length > 0) {
-          setRecords(pulled);
+          setRecords(prev => {
+            // สร้าง Map ของรายการในเครื่องเพื่อคงจำนวนแรงงานที่ถูกต้อง
+            const prevMap = new Map(prev.map(r => [r.requestNumber, r]));
+            const merged = pulled.map(p => {
+              const local = prevMap.get(p.requestNumber);
+              if (local && (local.workers?.length || 0) > (p.workers?.length || 0)) {
+                // หากข้อมูลในเครื่องมีรายชื่อแรงงานครบถ้วนกว่า ให้คงข้อมูลแรงงานในเครื่องไว้
+                return { 
+                  ...p, 
+                  workers: local.workers, 
+                  alienCount: local.alienCount, 
+                  totalAmount: local.totalAmount,
+                  thaiBahtText: local.thaiBahtText,
+                };
+              }
+              return p;
+            });
+            // รักษารายการที่อาจยังไม่อยู่ใน pulled
+            const pulledKeys = new Set(pulled.map(p => p.requestNumber));
+            const missingLocals = prev.filter(r => r.requestNumber && !pulledKeys.has(r.requestNumber));
+            return [...missingLocals, ...merged];
+          });
           setLastSyncTime(new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
         }
       }).catch(() => {});
-    }, 1500);
+    }, 4000);
   };
 
   const handleSyncSingleRecord = async (record: DepositRecord) => {
@@ -727,6 +769,14 @@ export default function App() {
         </div>
       )}
 
+      {/* Version Update Notification Banner */}
+      <VersionUpdateBanner
+        hasNewVersion={hasNewVersion}
+        newVersionInfo={newVersionInfo}
+        onUpdate={applyUpdate}
+        onDismiss={dismissUpdate}
+      />
+
       {/* Offline Indicator */}
       <OfflineIndicator />
 
@@ -744,28 +794,28 @@ export default function App() {
             ระบบบันทึกการชำระเงินค่าวางหลักประกันแรงงานต่างด้าว · กรมการจัดหางาน กระทรวงแรงงาน
           </div>
 
-          {/* ด้านขวามือ: การนับจำนวนคนเข้าใช้งาน และ คนกดเลือกส่งออกไฟล์ */}
+          {/* ด้านขวามือ: การนับจำนวนคนเข้าใช้งาน และ คนกดเลือกส่งออกไฟล์ และ ข้อมูลเวอร์ชัน */}
           <div className="flex items-center gap-2.5 flex-wrap justify-center md:justify-end text-xs">
-            {/* 1. จำนวนคนเข้าใช้งาน */}
+            {/* 1. จำนวนคนเข้าใช้งานสะสม */}
             <div 
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50/80 border border-blue-200 text-blue-950 shadow-2xs hover:bg-blue-100/70 transition"
-              title="จำนวนครั้งที่มีผู้เข้าใช้งานระบบ"
+              title="ยอดผู้เข้าใช้งานระบบสะสมทั้งหมด (นับสะสมต่อเนื่องถาวร ไม่มีการรีเซ็ตหรือลบข้อมูลในแต่ละวัน)"
             >
               <Users className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-              <span className="text-slate-600 font-medium text-[11px]">ผู้เข้าใช้งาน:</span>
+              <span className="text-slate-600 font-medium text-[11px]">ผู้เข้าใช้งานสะสม:</span>
               <strong className="font-mono font-bold text-blue-700 bg-white px-1.5 py-0.5 rounded-md border border-blue-100 shadow-2xs">
                 {visitorCount.toLocaleString('th-TH')}
               </strong>
               <span className="text-slate-500 text-[11px]">คน</span>
             </div>
 
-            {/* 2. คนกดเลือกส่งออกไฟล์ */}
+            {/* 2. คนกดเลือกส่งออกไฟล์สะสม */}
             <div 
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50/80 border border-emerald-200 text-emerald-950 shadow-2xs hover:bg-emerald-100/70 transition"
-              title="จำนวนครั้งที่มีการกดส่งออกไฟล์ฐานข้อมูล CSV"
+              title="ยอดการกดส่งออกไฟล์สะสมทั้งหมด (นับสะสมต่อเนื่องถาวร ไม่มีการรีเซ็ตหรือลบข้อมูลในแต่ละวัน)"
             >
               <Download className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-              <span className="text-slate-600 font-medium text-[11px]">ส่งออกไฟล์:</span>
+              <span className="text-slate-600 font-medium text-[11px]">ส่งออกไฟล์สะสม:</span>
               <strong className="font-mono font-bold text-emerald-700 bg-white px-1.5 py-0.5 rounded-md border border-emerald-100 shadow-2xs">
                 {exportClickCount.toLocaleString('th-TH')}
               </strong>

@@ -73,12 +73,23 @@ export function generateSampleRequestNumber(config: RequestNumberConfig): string
 }
 
 /**
- * ตรวจสอบความถูกต้องของเลขที่คำขอ
+ * แยกรายการเลขที่คำขอ (รองรับทั้งคั่นด้วยจุลภาค เคาะวรรค ขึ้นบรรทัดใหม่ หรือสแลช)
+ */
+export function splitRequestNumbers(value: string): string[] {
+  if (!value) return [];
+  return value
+    .split(/[,;\n\s/]+/)
+    .map(s => s.trim())
+    .filter(Boolean);
+}
+
+/**
+ * ตรวจสอบความถูกต้องของเลขที่คำขอ (รองรับทั้ง 1 เลข และหลายเลขสำหรับนายจ้างเดียวที่มีหลายแรงงาน)
  */
 export function validateRequestNumber(
   value: string,
   config: RequestNumberConfig = getRequestNumberConfig()
-): { isValid: boolean; error?: string } {
+): { isValid: boolean; error?: string; count?: number } {
   const trimmed = (value || '').trim();
   if (!trimmed) {
     return { isValid: false, error: 'กรุณากรอกเลขที่คำขอ' };
@@ -86,29 +97,37 @@ export function validateRequestNumber(
 
   // หากปิดการบังคับตรวจสอบ ให้ยอมรับได้เลยตราบใดที่ไม่ว่าง
   if (!config.enabled) {
-    return { isValid: true };
+    return { isValid: true, count: 1 };
   }
 
-  // ตรวจสอบว่าต้องเป็นตัวเลขเท่านั้น
-  if (!/^\d+$/.test(trimmed)) {
-    return { isValid: false, error: 'เลขที่คำขอต้องประกอบด้วยตัวเลขเท่านั้น' };
+  const list = splitRequestNumbers(trimmed);
+  if (list.length === 0) {
+    return { isValid: false, error: 'กรุณากรอกเลขที่คำขอ' };
   }
 
-  // ตรวจสอบตัวเลขนำหน้า (prefix)
-  if (config.prefix && !trimmed.startsWith(config.prefix)) {
-    return {
-      isValid: false,
-      error: `เลขที่คำขอต้องขึ้นต้นด้วย "${config.prefix}" เท่านั้น`,
-    };
+  // ตรวจสอบทีละเลขคำขอ
+  for (let i = 0; i < list.length; i++) {
+    const num = list[i];
+    const prefixLabel = list.length > 1 ? `เลขที่คำขอลำดับที่ ${i + 1} ` : 'เลขที่คำขอ';
+
+    if (!/^\d+$/.test(num)) {
+      return { isValid: false, error: `${prefixLabel}ต้องประกอบด้วยตัวเลขเท่านั้น` };
+    }
+
+    if (config.prefix && !num.startsWith(config.prefix)) {
+      return {
+        isValid: false,
+        error: `${prefixLabel}ต้องขึ้นต้นด้วย "${config.prefix}" เท่านั้น`,
+      };
+    }
+
+    if (num.length !== config.length) {
+      return {
+        isValid: false,
+        error: `${prefixLabel}ต้องมีจำนวน ${config.length} หลักเท่านั้น (ปัจจุบันกรอก ${num.length} หลัก)`,
+      };
+    }
   }
 
-  // ตรวจสอบจำนวนหลัก (length)
-  if (trimmed.length !== config.length) {
-    return {
-      isValid: false,
-      error: `เลขที่คำขอต้องมีจำนวน ${config.length} หลักเท่านั้น (ปัจจุบันกรอก ${trimmed.length} หลัก)`,
-    };
-  }
-
-  return { isValid: true };
+  return { isValid: true, count: list.length };
 }

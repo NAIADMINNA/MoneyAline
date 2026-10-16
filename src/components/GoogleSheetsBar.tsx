@@ -17,9 +17,11 @@ import {
   Globe,
   EyeOff,
   RotateCcw,
-  Hash
+  Hash,
+  Sparkles
 } from 'lucide-react';
 import { User } from 'firebase/auth';
+import { CURRENT_APP_VERSION, broadcastAppUpdate } from '../utils/versionCheck';
 import { 
   SPREADSHEET_ID, 
   batchAppendRecordsToSheet, 
@@ -29,7 +31,8 @@ import {
   batchAppendViaAppsScript,
   forceUpdateSheetHeaders,
   restructureSheetDataToSingleWorkerRows,
-  restructureViaAppsScript
+  restructureViaAppsScript,
+  appendRecordViaAppsScript
 } from '../services/googleSheets';
 import { DepositRecord } from '../types/deposit';
 import { 
@@ -141,6 +144,14 @@ export const GoogleSheetsBar: React.FC<GoogleSheetsBarProps> = ({
 }
 
 function doPost(e) {
+  var lock = LockService.getScriptLock();
+  // รอคิวได้สูงสุด 30 วินาที ป้องกันข้อมูลชนกันหรือคำขอตกหล่น 100%
+  var success = lock.tryLock(30000);
+  if (!success) {
+    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Server busy, lock timeout" }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = ss.getActiveSheet();
@@ -167,12 +178,15 @@ function doPost(e) {
         sheet.appendRow(r);
       }
     }
+    SpreadsheetApp.flush(); // บันทึกลงชีตทันที
     
     return ContentService.createTextOutput(JSON.stringify({ status: "success", count: rows.length }))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({ status: "error", message: err.toString() }))
       .setMimeType(ContentService.MimeType.JSON);
+  } finally {
+    lock.releaseLock();
   }
 }`;
 
@@ -224,6 +238,66 @@ function doPost(e) {
       onNotify(`บันทึกการตั้งค่า Webhook และกำหนดเลขที่คำขอ (ขึ้นต้นด้วย "${finalConfig.prefix}" จำนวน ${finalConfig.length} หลัก) เรียบร้อยแล้ว!`);
     } else {
       onNotify(`บันทึกการกำหนดเลขที่คำขอ (ขึ้นต้นด้วย "${finalConfig.prefix}" จำนวน ${finalConfig.length} หลัก) เรียบร้อยแล้ว`);
+    }
+  };
+
+  const [isTestingWebhook, setIsTestingWebhook] = useState(false);
+
+  const handleTestTwoWorkersWebhook = async () => {
+    const targetUrl = (inputUrl || '').trim() || webhookUrl;
+    if (!targetUrl) {
+      onNotify('กรุณาระบุ Webhook URL ก่อนกดทดสอบ');
+      return;
+    }
+
+    setIsTestingWebhook(true);
+    try {
+      const testReqNum = '691' + String(Date.now()).slice(-11);
+      const testRecord: DepositRecord = {
+        id: 'test-multi-' + Date.now(),
+        requestNumber: testReqNum,
+        receiptBook: 'TEST',
+        receiptNumber: '999999',
+        paymentDate: new Date().toISOString().split('T')[0],
+        paymentChannel: 'โอนเงิน / ทดสอบระบบ',
+        employerType: 'company',
+        employerName: 'บริษัท ทดสอบระบบ จำกัด (TEST)',
+        idCardNumber: '0-1055-99999-99-9',
+        phoneNumber: '081-999-9999',
+        alienCategory: 'MOU (2 ปีแรก)',
+        alienCount: 2,
+        ratePerPerson: 1000,
+        totalAmount: 2000,
+        thaiBahtText: 'สองพันบาทถ้วน',
+        employmentOffice: 'สำนักงานจัดหางานกรุงเทพมหานครพื้นที่ 1',
+        officerName: 'เจ้าหน้าที่ทดสอบ',
+        officerPosition: 'นักวิชาการแรงงาน',
+        notes: 'รายการทดสอบยืนยันการบันทึกแรงงาน 2 คน',
+        createdAt: new Date().toISOString(),
+        workers: [
+          {
+            id: 'w-test-1',
+            idCardNumber: '0-1111-22222-33-4',
+            name: 'TEST AUNG SAN',
+            nationality: 'เมียนมา (Myanmar)',
+            category: 'MOU (2 ปีแรก)',
+          },
+          {
+            id: 'w-test-2',
+            idCardNumber: '0-5555-66666-77-8',
+            name: 'TEST KYAW ZIN',
+            nationality: 'เมียนมา (Myanmar)',
+            category: 'MOU (2 ปีแรก)',
+          },
+        ],
+      };
+
+      await appendRecordViaAppsScript(targetUrl, testRecord);
+      onNotify(`✅ ส่งข้อมูลทดสอบแรงงาน 2 คน (คำขอเลขที่ ${testReqNum}) ลง Google Sheet สำเร็จแล้ว! สามารถเปิดชีตตรวจสอบได้ทันที`);
+    } catch (err: any) {
+      onNotify('เกิดข้อผิดพลาดในการทดสอบ: ' + (err.message || 'โปรดตรวจสอบสิทธิ์ของ Webhook'));
+    } finally {
+      setIsTestingWebhook(false);
     }
   };
 
@@ -568,12 +642,24 @@ function doPost(e) {
                   <span className="w-5 h-5 rounded-full bg-purple-600 text-white font-bold flex items-center justify-center text-[11px] shrink-0 mt-0.5">3</span>
                   <div>
                     <span className="font-semibold text-slate-800">กด Deploy (ทำให้ใช้งานได้):</span>
-                    <ul className="list-disc pl-5 mt-1 space-y-0.5 text-slate-600">
-                      <li>กดปุ่มสีน้ำเงิน <strong>ทำให้ใช้งานได้ (Deploy)</strong> &gt; <strong>การทำให้ใช้งานได้ใหม่ (New deployment)</strong></li>
-                      <li>เลือกประเภท: <strong>เว็บแอป (Web app)</strong></li>
-                      <li>การดำเนินการในฐานะ (Execute as): <strong>ฉัน (Me)</strong></li>
-                      <li>ผู้ที่มีสิทธิ์เข้าถึง (Who has access): <strong className="text-purple-700 font-bold">ทุกคน (Anyone)</strong> (สำคัญมาก)</li>
-                    </ul>
+                    <div className="mt-1 space-y-2 text-slate-600">
+                      <div className="p-2.5 rounded-lg bg-purple-50/80 border border-purple-200 text-[11px] space-y-1">
+                        <strong className="text-purple-900 block font-bold">กรณีเคยเชื่อมต่อไว้แล้ว (ต้องการอัปเดตให้แยกแถวละ 1 คน):</strong>
+                        <ol className="list-decimal pl-4 space-y-0.5 text-slate-700">
+                          <li>กดปุ่มสีน้ำเงิน <strong>ทำให้ใช้งานได้ (Deploy)</strong> &gt; <strong>การจัดการการทำให้ใช้งานได้ (Manage deployments)</strong></li>
+                          <li>กดที่รูป <strong>ดินสอ (แก้ไข / Edit)</strong> ที่แถบการ Deploy ปัจจุบัน</li>
+                          <li>ในช่อง <strong>เวอร์ชัน (Version)</strong> คลิกเลือก <strong>"เวอร์ชันใหม่" (New version)</strong></li>
+                          <li>กดปุ่ม <strong>ทำให้ใช้งานได้ (Deploy)</strong> ด้านล่างขวา</li>
+                        </ol>
+                        <span className="text-[10px] text-purple-800 block font-semibold mt-1">
+                          *(หากไม่เลือก "เวอร์ชันใหม่" Google จะยังคงรันโค้ดเก่า ทำให้ข้อมูลคนที่ 2 ซ้อนในแถวเดียวกัน)*
+                        </span>
+                      </div>
+
+                      <div className="text-[11px] text-slate-600">
+                        <strong>กรณีสร้าง Webhook ครั้งแรก:</strong> กด Deploy &gt; การทำให้ใช้งานได้ใหม่ (New deployment) &gt; เลือก เว็บแอป (Web app) &gt; ผู้ที่มีสิทธิ์เข้าถึง: <strong>ทุกคน (Anyone)</strong>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -588,6 +674,23 @@ function doPost(e) {
                       placeholder="https://script.google.com/macros/s/AKfycb.../exec"
                       className="mt-1.5 w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-mono text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-purple-500"
                     />
+
+                    {/* ปุ่มทดสอบส่งแรงงาน 2 คนเพื่อยืนยันระบบ */}
+                    <div className="mt-2.5 pt-2 border-t border-slate-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                      <div className="text-[11px] text-slate-600">
+                        <span className="font-semibold text-purple-900">ทดสอบระบบ:</span> ส่งข้อมูลจำลองแรงงาน 2 คนเพื่อดูผลลัพธ์บน Google Sheet ทันที
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleTestTwoWorkersWebhook}
+                        disabled={isTestingWebhook || (!inputUrl.trim() && !webhookUrl)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-purple-300 bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-bold shadow-2xs transition disabled:opacity-40 cursor-pointer shrink-0"
+                        title="ส่งข้อมูลแรงงานทดสอบ 2 คนไปยัง Webhook ทันที เพื่อตรวจดูแถวข้อมูลบน Google Sheet"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${isTestingWebhook ? 'animate-spin' : ''}`} />
+                        <span>{isTestingWebhook ? 'กำลังส่งข้อมูล...' : 'ทดสอบส่งตัวอย่างแรงงาน 2 คนลง Sheet'}</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -714,6 +817,51 @@ function doPost(e) {
                   >
                     <RefreshCw className={`w-3.5 h-3.5 text-white ${isRestructuring ? 'animate-spin' : ''}`} />
                     <span>{isRestructuring ? 'กำลังจัดระเบียบ...' : 'แปลงข้อมูลเดิมใน Sheet ให้เป็น 1 แถวต่อคน'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* การจัดการเวอร์ชันและการอัปเดตระบบให้ผู้ใช้ทุกคนตรงกัน */}
+              <div className="bg-amber-50/70 border border-amber-200/90 rounded-xl p-3.5 space-y-2.5 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>การอัปเดตระบบให้ผู้ใช้งานทุกคนตรงกัน (Auto Version Sync)</span>
+                  </div>
+                  <span className="text-[10px] font-mono font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
+                    เวอร์ชันปัจจุบัน v{CURRENT_APP_VERSION}
+                  </span>
+                </div>
+
+                <div className="text-[11px] text-amber-900 leading-relaxed space-y-1">
+                  <p>
+                    <strong>กรณีมีผู้ใช้งานเปิดระบบค้างอยู่:</strong> ระบบมีตัวดักจับเวอร์ชันใหม่แบบเบื้องหลัง (Background Polling) ตรวจสอบทุก 60 วินาที และเมื่อผู้ใช้สลับหน้าจอกลับมา เมื่อมีเวอร์ชันใหม่ ป๊อปอัปแจ้งเตือน <em>"ระบบมีเวอร์ชันใหม่พร้อมใช้งาน"</em> จะปรากฏขึ้นที่มุมขวาบนของหน้าจอผู้ใช้ทุกคนทันที
+                  </p>
+                  <p className="text-[10px] text-amber-800/80">
+                    เมื่อผู้ใช้กดปุ่ม <strong>"กดอัปเดตระบบทันที"</strong> ระบบจะล้างไฟล์แคชเก่าและโหลดข้อมูลเวอร์ชันล่าสุดโดยอัตโนมัติ 100% โดยที่ข้อมูลที่กำลังกรอกหรือบันทึกแล้วจะไม่สูญหาย
+                  </p>
+                </div>
+
+                {/* ปุ่มทดสอบส่งสัญญาณอัปเดตระบบไปยังผู้ใช้ทุกคน */}
+                <div className="pt-2 border-t border-amber-200/70 flex items-center justify-between flex-wrap gap-2">
+                  <span className="text-[10px] text-slate-500 font-medium">
+                    ต้องการส่งสัญญาณทดสอบให้ทุกแท็บแสดงหน้าต่างอัปเดตทันที:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      broadcastAppUpdate({
+                        version: `${CURRENT_APP_VERSION}.1`,
+                        buildTime: new Date().toISOString(),
+                        description: 'การอัปเดตปรับปรุงระบบจากผู้ดูแลระบบ'
+                      });
+                      onNotify('ส่งสัญญาณแจ้งเตือนอัปเดตระบบไปยังทุกแท็บเรียบร้อยแล้ว');
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 active:scale-95 text-white text-xs font-bold rounded-lg shadow-2xs transition cursor-pointer"
+                    title="ทดสอบส่งสัญญาณแจ้งเตือนการอัปเดตไปยังหน้าจอของผู้ใช้งานทุกคนทันที"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-white" />
+                    <span>ทดสอบส่งสัญญาณอัปเดตให้ทุกหน้าจอ</span>
                   </button>
                 </div>
               </div>

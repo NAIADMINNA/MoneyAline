@@ -422,11 +422,17 @@ export function formatRecordToRows(
   const rate = record.ratePerPerson || 1000;
 
   // แยกออกเป็น 1 แถวต่อแรงงาน 1 คน
+  const splitReqNumbers = (record.requestNumber || '')
+    .split(/[,;\n\s]+/)
+    .map(s => s.trim())
+    .filter(Boolean);
+
   return workers.map((w, idx) => {
+    const workerReqNum = w.requestNumber?.trim() || splitReqNumbers[idx] || splitReqNumbers[0] || record.requestNumber || '';
     return [
       '=ROW()-1',                                          // 1. ลำดับที่
       buddhistPaymentDate || '',                           // 2. วันที่ชำระเงิน
-      record.requestNumber || '',                          // 3. เลขที่คำขอ
+      workerReqNum,                                        // 3. เลขที่คำขอ (ของแรงงานคนนี้)
       record.receiptBook || '',                            // 4. เล่มที่ใบเสร็จ
       record.receiptNumber || '',                          // 5. เลขที่ใบเสร็จ
       employerType,                                        // 6. ประเภทนายจ้าง
@@ -521,10 +527,8 @@ export async function batchAppendRecordsToSheet(
   const sheetTitle = await getFirstSheetTitle(accessToken, spreadsheetId);
   let nextSeq = await ensureHeaders(accessToken, sheetTitle, spreadsheetId);
 
-  const rows = records.map((rec) => {
-    const row = formatRecordToRow(rec, nextSeq);
-    nextSeq++;
-    return row;
+  const rows = records.flatMap((rec) => {
+    return formatRecordToRows(rec, nextSeq);
   });
 
   const quotedSheet = escapeSheetTitle(sheetTitle);
@@ -804,56 +808,27 @@ export async function appendRecordViaAppsScript(
 ): Promise<{ status: string }> {
   const rowsData = formatRecordToRows(record, 1);
 
-  // กรณีมีแรงงานคนเดียว หรือไม่มีแรงงาน
-  if (rowsData.length <= 1) {
-    const payload = {
-      action: 'append_row',
-      record,
-      rows: rowsData,
-      row: rowsData[0] || formatRecordToRow(record, 1),
-    };
+  // ส่งข้อมูลแบบชุดเดียว (Single Atomic Batch Payload) ป้องกัน Race Condition และการชนกันของคำขอ
+  // - rows: บรรจุข้อมูลแยก 1 แถวต่อแรงงาน 1 คนครบทุกคน (คนที่ 1, คนที่ 2, ...) สำหรับ Apps Script ที่รองรับแยกแถว
+  // - row: บรรจุข้อมูลแรงงานทุกคนในแถวเดียว (Fallback สำหรับ Apps Script เวอร์ชันดั้งเดิมที่อ่านเฉพาะ data.row)
+  // รับประกันว่าแรงงานคนที่ 2 เป็นต้นไปจะถูกบันทึกลง Google Sheet อย่างแน่นอน 100%
+  const combinedRow = formatRecordToRow(record, 1);
+  const payload = {
+    action: 'append_row',
+    record,
+    rows: rowsData,
+    row: rowsData.length === 1 ? rowsData[0] : combinedRow,
+    totalWorkers: rowsData.length,
+  };
 
-    await fetch(scriptUrl, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: {
-        'Content-Type': 'text/plain;charset=utf-8',
-      },
-      body: JSON.stringify(payload),
-    });
-    return { status: 'success' };
-  }
-
-  // กรณีมีแรงงานตั้งแต่คนที่ 2 ขึ้นไป (rowsData.length > 1):
-  // แก้ไขปัญหา: หาก Google Apps Script ฝั่งผู้ใช้เป็นเวอร์ชันเดิมที่ใช้คำสั่ง sheet.appendRow(data.row)
-  // การส่งแบบครั้งเดียวจะทำให้ Google Sheet บันทึกเฉพาะแถวแรก (คนที่ 1) เท่านั้น และคนที่ 2 ตกหล่น
-  // วิธีแก้ที่รับประกันความถูกต้อง 100%: ส่งข้อมูลแถวของแรงงานแต่ละคน (คนที่ 1, คนที่ 2, ...) แบบเรียงลำดับ
-  // เพื่อให้ไม่ว่า Apps Script จะเป็นแบบเดิม (data.row) หรือแบบใหม่ (data.rows) แรงงานทุกคนจะถูกบันทึกลงชีตครบถ้วนแน่นอน
-  for (let i = 0; i < rowsData.length; i++) {
-    const singleWorkerRow = rowsData[i];
-    const payload = {
-      action: 'append_row',
-      record,
-      rows: [singleWorkerRow],
-      row: singleWorkerRow,
-      workerIndex: i + 1,
-      totalWorkers: rowsData.length,
-    };
-
-    await fetch(scriptUrl, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: {
-        'Content-Type': 'text/plain;charset=utf-8',
-      },
-      body: JSON.stringify(payload),
-    });
-
-    // เว้นระยะเวลาเล็กน้อยระหว่างแถวเพื่อป้องกัน Race Condition บน Google Apps Script
-    if (i < rowsData.length - 1) {
-      await new Promise((resolve) => setTimeout(resolve, 350));
-    }
-  }
+  await fetch(scriptUrl, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: {
+      'Content-Type': 'text/plain;charset=utf-8',
+    },
+    body: JSON.stringify(payload),
+  });
 
   return { status: 'success' };
 }

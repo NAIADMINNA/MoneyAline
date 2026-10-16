@@ -11,6 +11,7 @@ export interface ForeignWorker {
   name: string; // ชื่อ-นามสกุล
   nationality: string; // สัญชาติ
   category?: string; // ประเภทคนต่างด้าว / มติ ครม. รายบุคคล
+  requestNumber?: string; // เลขที่คำขอเฉพาะของแรงงานคนนี้ (กรณีมีหลายเลขคำขอต่อนายจ้างเดียว)
 }
 
 export interface DepositRecord {
