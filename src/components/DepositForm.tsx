@@ -1232,6 +1232,75 @@ export const DepositForm: React.FC<DepositFormProps> = ({
                   <Calendar className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
               </div>
+
+              {/* กล่องคำอธิบาย: พื้นที่ว่างใต้วันที่ชำระเงิน กรณีที่นายจ้างรายเดียวมีแรงงานหลายคน (เน้นกรอบและเน้นหัวข้อชัดเจน) */}
+              <div className="pt-2">
+                <div className="rounded-2xl border-2 border-blue-400/90 bg-gradient-to-br from-blue-50/95 via-white/95 to-indigo-50/80 p-4 space-y-3 backdrop-blur-md shadow-[0_10px_28px_-4px_rgba(37,99,235,0.18)] ring-2 ring-blue-200/70 transition-all duration-300 hover:border-blue-500 hover:shadow-[0_14px_34px_-4px_rgba(37,99,235,0.22)]">
+                  {/* หัวข้อหลักที่เน้นชัดเจน */}
+                  <div className="flex items-center gap-2.5 pb-2.5 border-b-2 border-blue-200/90 bg-gradient-to-r from-blue-100/70 to-indigo-50/30 -mx-4 -mt-4 px-4 pt-3.5 rounded-t-2xl">
+                    <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-sm shadow-blue-500/30 flex items-center justify-center shrink-0">
+                      <Info className="w-4 h-4" />
+                    </span>
+                    <div className="flex-1 flex items-center justify-between flex-wrap gap-1">
+                      <span className="text-blue-950 font-extrabold text-xs sm:text-[13px] tracking-tight">
+                        คำอธิบาย: กรณีที่นายจ้างรายเดียวมีแรงงานหลายคน
+                      </span>
+                      <span className="text-[10px] font-bold text-blue-700 bg-blue-100/90 border border-blue-300 px-2 py-0.5 rounded-full shadow-2xs">
+                        สะดวก 2 วิธี
+                      </span>
+                    </div>
+                  </div>
+
+                  <p className="text-[11.5px] text-slate-800 leading-relaxed font-semibold">
+                    สำหรับกรณีที่นายจ้างรายเดียวมีแรงงานหลายคนได้อย่างสมบูรณ์แบบ โดยสามารถทำได้สะดวกถึง <span className="text-blue-700 font-extrabold underline decoration-blue-400 decoration-2 underline-offset-2">2 วิธี</span> ดังนี้ครับ:
+                  </p>
+
+                  <div className="space-y-2.5 text-[11px]">
+                    {/* วิธีที่ 1 */}
+                    <div className="p-3.5 rounded-xl bg-white border-2 border-blue-300/90 space-y-2 shadow-[0_3px_12px_-2px_rgba(37,99,235,0.12)] hover:border-blue-400 transition-all">
+                      <div className="flex items-center gap-2 font-bold text-blue-900 flex-wrap">
+                        <span className="px-2.5 py-1 rounded-md bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-[10.5px] font-extrabold shadow-sm shrink-0">
+                          วิธีที่ 1
+                        </span>
+                        <span className="text-xs font-bold text-blue-950">พิมพ์คั่นด้วยเครื่องหมายจุลภาค (,) ในช่องส่วนที่ 1 ได้ทันที</span>
+                        <span className="text-emerald-800 font-extrabold bg-emerald-100/90 px-2 py-0.5 rounded-full border border-emerald-300 text-[10px] shadow-2xs">
+                          (สะดวกที่สุด)
+                        </span>
+                      </div>
+                      <p className="text-slate-700 text-[11px] pl-1 leading-relaxed font-medium">
+                        ในช่อง <strong>"เลขที่คำขอ (Request No.)"</strong> ในส่วนที่ 1 ท่านสามารถพิมพ์เลขคำขอของแต่ละคนคั่นด้วยเครื่องหมายจุลภาค (,) ได้เลย
+                      </p>
+                      <div className="pl-1 pt-0.5">
+                        <span className="inline-flex items-center gap-1.5 font-mono text-[11px] text-blue-900 bg-blue-50/90 px-2.5 py-1 rounded-md border border-blue-300 shadow-2xs">
+                          <span className="text-slate-500 font-sans text-[10.5px] font-bold">ตัวอย่าง:</span> 69144008610001, 69144008610002
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* วิธีที่ 2 */}
+                    <div className="p-3.5 rounded-xl bg-white border-2 border-indigo-300/90 space-y-2 shadow-[0_3px_12px_-2px_rgba(99,102,241,0.12)] hover:border-indigo-400 transition-all">
+                      <div className="flex items-center gap-2 font-bold text-indigo-950">
+                        <span className="px-2.5 py-1 rounded-md bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-[10.5px] font-extrabold shadow-sm shrink-0">
+                          วิธีที่ 2
+                        </span>
+                        <span className="text-xs font-bold text-indigo-950">ระบุในกล่องข้อมูลของแรงงานแต่ละคนในส่วนที่ 3</span>
+                      </div>
+                      <div className="text-slate-700 text-[11px] pl-1 space-y-1.5 leading-relaxed font-medium">
+                        <p>
+                          ในส่วน <strong>"3. ข้อมูลคนต่างด้าว"</strong> เมื่อท่านกดเพิ่มแรงงาน (คนที่ 1, คนที่ 2, ...)
+                        </p>
+                        <p>
+                          ในกล่องข้อมูลของแรงงานแต่ละคน จะมีช่อง <strong>"เลขที่คำขอ (สำหรับแรงงานคนนี้)"</strong> ให้ท่านสามารถพิมพ์ระบุเลข 14 หลักของคนนั้นๆ ได้โดยตรง
+                        </p>
+                        <p className="text-[10.5px] text-slate-600 pt-0.5 font-semibold flex items-center gap-1 bg-slate-50 p-2 rounded-lg border border-slate-200">
+                          <span className="text-blue-600 font-bold">ℹ️ หมายเหตุ:</span>
+                          <span>หากไม่ได้พิมพ์เจาะจงรายคน ระบบจะดึงเลขคำขอหลักจากส่วนที่ 1 ไปใช้อัตโนมัติ</span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
