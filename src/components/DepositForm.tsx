@@ -85,13 +85,6 @@ export const DepositForm: React.FC<DepositFormProps> = ({
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // ควบคุมโหมดเลขที่คำขอ: 'single' (เลขเดียว) หรือ 'multiple' (แยกรายคน)
-  const [isSeparateRequestMode, setIsSeparateRequestMode] = useState<boolean>(() => {
-    return splitRequestNumbers(initialData?.requestNumber || '').length > 1;
-  });
-  const [showBulkPasteModal, setShowBulkPasteModal] = useState<boolean>(false);
-  const [bulkPasteText, setBulkPasteText] = useState<string>('');
-
   // Dynamic request number configuration from Webhook settings
   const [reqConfig, setReqConfig] = useState<RequestNumberConfig>(() => getRequestNumberConfig());
 
@@ -151,45 +144,6 @@ export const DepositForm: React.FC<DepositFormProps> = ({
     }
   };
 
-  // ดำเนินการกระจายเลขที่คำขอหลายเลขจากการวางข้อความพร้อมกัน
-  const handleApplyBulkRequestNumbers = (text: string) => {
-    const parsed = splitRequestNumbers(text);
-    if (parsed.length === 0) return;
-
-    setFormData(prev => {
-      const currentWorkers = [...(prev.workers || [])];
-      while (currentWorkers.length < parsed.length) {
-        currentWorkers.push({
-          id: `w-${Date.now()}-${currentWorkers.length + 1}`,
-          idCardNumber: '',
-          name: '',
-          nationality: currentWorkers[0]?.nationality || NATIONALITIES[0],
-          category: currentWorkers[0]?.category || prev.alienCategory || ALIEN_CATEGORIES[0],
-        });
-      }
-      const updatedWorkers = currentWorkers.map((w, idx) => ({
-        ...w,
-        requestNumber: parsed[idx] !== undefined ? parsed[idx] : w.requestNumber,
-      }));
-
-      return {
-        ...prev,
-        workers: updatedWorkers,
-        alienCount: updatedWorkers.length,
-        requestNumber: parsed.join(', '),
-      };
-    });
-
-    setIsSeparateRequestMode(true);
-    setShowBulkPasteModal(false);
-    setBulkPasteText('');
-    setErrors(prev => {
-      const copy = { ...prev };
-      delete copy.requestNumber;
-      return copy;
-    });
-  };
-
   const handleInputChange = (field: keyof FormDataState, value: any) => {
     setFormData(prev => ({
       ...prev,
@@ -206,12 +160,12 @@ export const DepositForm: React.FC<DepositFormProps> = ({
   };
 
   const handleRequestNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // กรองเฉพาะตัวเลข และเครื่องหมายคั่น (หากพิมพ์เลขเดี่ยว บังคับสูงสุดไม่เกิน 14 หลักเด็ดขาด)
+    // กรองเฉพาะตัวเลข และเครื่องหมายคั่น เช่น จุลภาค, เคาะวรรค, ขึ้นบรรทัดใหม่, เซมิโคลอน
     let raw = e.target.value;
     let cleanVal = raw.replace(/[^\d,\s\n/;\-]/g, '');
     
-    // หากเป็นเลขเดี่ยว (ไม่มีเครื่องหมายคั่น) บังคับตัดไม่เกิน 14 หลัก
-    if (!cleanVal.includes(',') && !cleanVal.includes('\n') && !cleanVal.includes(';')) {
+    // หากเป็นเลขเดี่ยว (ไม่มีเครื่องหมายคั่น) ตัดไม่เกิน 14 หลัก
+    if (!cleanVal.includes(',') && !cleanVal.includes('\n') && !cleanVal.includes(';') && !cleanVal.includes('/')) {
       const digitsOnly = cleanVal.replace(/\D/g, '').slice(0, 14);
       cleanVal = digitsOnly;
     }
@@ -228,12 +182,12 @@ export const DepositForm: React.FC<DepositFormProps> = ({
     }
 
     const list = splitRequestNumbers(cleanVal);
-    // ตรวจสอบและบังคับให้เลขคำขอขึ้นต้นด้วย 691 เสมอ
-    if (list.length === 1 && !cleanVal.includes(',')) {
-      const singleNum = list[0];
+    // ตรวจสอบกรณีเลขคำขอเดียว
+    if (list.length <= 1 && !cleanVal.includes(',')) {
+      const singleNum = list[0] || '';
       const prefix = '691';
 
-      // ตรวจสอบว่าขึ้นต้นด้วย 691 หรือไม่ (ระหว่างพิมพ์ 1-3 ตัวแรกต้องตรงกับ 691)
+      // ตรวจสอบว่าขึ้นต้นด้วย 691 หรือไม่
       const expectedSlice = prefix.slice(0, Math.min(prefix.length, singleNum.length));
       if (!singleNum.startsWith(expectedSlice)) {
         setErrors(prev => ({
@@ -243,7 +197,6 @@ export const DepositForm: React.FC<DepositFormProps> = ({
         return;
       }
 
-      // หากกรอกครบ 14 หลักแล้ว ให้ตรวจความถูกต้องสมบูรณ์
       if (singleNum.length === 14) {
         if (!singleNum.startsWith('691')) {
           setErrors(prev => ({
@@ -258,27 +211,66 @@ export const DepositForm: React.FC<DepositFormProps> = ({
           });
         }
       } else {
-        // กำลังพิมพ์และขึ้นต้นด้วย 691 ถูกต้อง ให้ล้าง error
         setErrors(prev => {
           const copy = { ...prev };
           delete copy.requestNumber;
           return copy;
         });
       }
-    } else if (list.length > 1) {
-      // ตรวจสอบทุกเลขคำขอว่าต้องขึ้นต้นด้วย 691 และครบ 14 หลัก
-      const check = validateRequestNumber(cleanVal, { ...reqConfig, prefix: '691', length: 14, enabled: true });
-      if (check.isValid) {
+    } else {
+      // กรณีมีมากกว่า 1 เลขคำขอ (เช่น คั่นด้วยเครื่องหมายจุลภาค , )
+      let hasError = false;
+      for (let i = 0; i < list.length; i++) {
+        const num = list[i];
+        const label = `เลขที่คำขอลำดับที่ ${i + 1}`;
+        if (!num.startsWith('691'.slice(0, Math.min(3, num.length)))) {
+          setErrors(prev => ({
+            ...prev,
+            requestNumber: `${label} ต้องขึ้นต้นด้วย "691" เสมอ`,
+          }));
+          hasError = true;
+          break;
+        }
+        if (num.length > 14) {
+          setErrors(prev => ({
+            ...prev,
+            requestNumber: `${label} ต้องมี 14 หลักพอดี (ปัจจุบัน ${num.length} หลัก)`,
+          }));
+          hasError = true;
+          break;
+        }
+      }
+
+      if (!hasError) {
         setErrors(prev => {
           const copy = { ...prev };
           delete copy.requestNumber;
           return copy;
         });
-      } else if (check.error) {
-        setErrors(prev => ({
-          ...prev,
-          requestNumber: check.error!,
-        }));
+
+        // ซิงค์จำนวนคนและผูกเลขคำขอให้แรงงานแต่ละคนโดยอัตโนมัติ
+        if (list.length > (formData.workers?.length || 0)) {
+          setFormData(prev => {
+            const currentWorkers = [...(prev.workers || [])];
+            while (currentWorkers.length < list.length) {
+              currentWorkers.push({
+                id: `w-${Date.now()}-${currentWorkers.length + 1}`,
+                idCardNumber: '',
+                name: '',
+                nationality: currentWorkers[0]?.nationality || NATIONALITIES[0],
+                category: currentWorkers[0]?.category || prev.alienCategory || ALIEN_CATEGORIES[0],
+              });
+            }
+            return {
+              ...prev,
+              alienCount: currentWorkers.length,
+              workers: currentWorkers.map((w, idx) => ({
+                ...w,
+                requestNumber: list[idx] || w.requestNumber,
+              })),
+            };
+          });
+        }
       }
     }
   };
@@ -1061,99 +1053,42 @@ export const DepositForm: React.FC<DepositFormProps> = ({
           </div>
         </div>
       )}
-
-      {/* Bulk Paste Modal for Multiple Request Numbers */}
-      {showBulkPasteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-5 sm:p-6 border border-slate-200 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold">
-                  <FileText className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-slate-900 text-base">วางเลขที่คำขอหลายเลขพร้อมกัน</h3>
-                  <p className="text-xs text-slate-500">คัดลอกมาจาก Excel หรือวางคั่นด้วยเครื่องหมายจุลภาค (,)</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowBulkPasteModal(false)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-xs font-semibold text-slate-700">
-                วางข้อความเลขที่คำขอที่นี่:
-              </label>
-              <textarea
-                rows={5}
-                value={bulkPasteText}
-                onChange={(e) => setBulkPasteText(e.target.value)}
-                placeholder={`ตัวอย่างเช่น:\n69144008610001\n69144008610002\n69144008610003\n\nหรือคั่นด้วยจุลภาค:\n69144008610001, 69144008610002`}
-                className="w-full px-3.5 py-2.5 text-xs font-mono rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600 transition"
-              />
-              <div className="flex items-center justify-between text-[11px] text-slate-500">
-                <span>ตรวจพบ: <strong className="text-purple-700">{splitRequestNumbers(bulkPasteText).length}</strong> เลขที่คำขอ</span>
-                <span>(ระบบจะสร้างช่องกรอกตามจำนวนเลขนี้ให้อัตโนมัติ)</span>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setShowBulkPasteModal(false)}
-                className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-semibold transition cursor-pointer"
-              >
-                ยกเลิก
-              </button>
-              <button
-                type="button"
-                onClick={() => handleApplyBulkRequestNumbers(bulkPasteText)}
-                disabled={splitRequestNumbers(bulkPasteText).length === 0}
-                className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white text-xs font-bold transition shadow-md shadow-purple-600/20 disabled:opacity-40 cursor-pointer"
-              >
-                นำเข้า {splitRequestNumbers(bulkPasteText).length} เลขที่คำขอ
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       
-      {/* Top Header Banner matching official institutional style */}
-      <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-blue-800 text-white px-6 py-5 sm:px-8 sm:py-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg shadow-blue-950/20 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none -z-10" />
-        <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-white/10 text-white backdrop-blur-md ring-1 ring-white/25 flex items-center justify-center font-bold shadow-inner shrink-0">
-            <Building2 className="w-6 h-6 text-amber-300" />
+      {/* Top Header Banner matching official institutional style with Glassmorphism & Soft Shadows */}
+      <div className="bg-gradient-to-r from-slate-950 via-blue-950 to-indigo-950 text-white px-6 py-6 sm:px-8 sm:py-7 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xl shadow-slate-950/25 relative overflow-hidden border-b border-white/10">
+        {/* Ambient radial reflections for glassy depth */}
+        <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-blue-500/15 rounded-full blur-3xl pointer-events-none -z-10" />
+        <div className="absolute -bottom-10 left-1/3 w-80 h-80 bg-indigo-500/15 rounded-full blur-2xl pointer-events-none -z-10" />
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent pointer-events-none" />
+
+        <div className="flex items-center gap-4">
+          <div className="w-13 h-13 rounded-2xl bg-white/10 text-white backdrop-blur-md ring-1 ring-white/25 flex items-center justify-center font-bold shadow-[0_8px_24px_rgba(0,0,0,0.3)] shrink-0 border border-white/20">
+            <Building2 className="w-6 h-6 text-amber-300 drop-shadow-[0_2px_8px_rgba(252,211,77,0.4)]" />
           </div>
           <div>
-            <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-white flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-white flex items-center gap-2 drop-shadow-xs">
               แบบบันทึกการชำระเงินค่าวางหลักประกันคนต่างด้าว
             </h1>
-            <p className="text-xs text-blue-200 mt-0.5">
+            <p className="text-xs text-blue-200/90 mt-0.5 tracking-wide">
               ตามพระราชกำหนดการบริหารจัดการการทำงานของคนต่างด้าว พ.ศ. ๒๕๖๐ และที่แก้ไขเพิ่มเติม
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold bg-amber-400/20 border border-amber-300/40 text-amber-200 backdrop-blur-sm shadow-xs">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold bg-white/10 border border-amber-300/35 text-amber-200 backdrop-blur-md shadow-[0_4px_16px_rgba(0,0,0,0.2)] ring-1 ring-white/15">
             <Info className="w-3.5 h-3.5 text-amber-300 shrink-0" />
             <span>อัตราจัดเก็บคงที่ 1,000 บาทต่อคน</span>
           </div>
         </div>
       </div>
 
-      {/* Main Form Body */}
-      <div className="p-5 sm:p-7 md:p-8 space-y-6 bg-slate-50/60">
+      {/* Main Form Body with subtle depth background */}
+      <div className="p-5 sm:p-7 md:p-8 space-y-6 bg-gradient-to-b from-slate-100/70 via-slate-50/50 to-blue-50/20 relative">
         
         {/* Error Banner if any required field is missing */}
         {Object.keys(errors).length > 0 && (
-          <div className="p-4 bg-red-50 border-2 border-red-200 rounded-2xl text-red-700 text-xs sm:text-sm flex items-center gap-3 shadow-xs">
+          <div className="p-4 bg-red-50/90 backdrop-blur-xs border-2 border-red-200 rounded-2xl text-red-700 text-xs sm:text-sm flex items-center gap-3 shadow-sm">
             <AlertCircle className="w-5 h-5 shrink-0 text-red-500" />
             <span className="font-medium">กรุณากรอกข้อมูลในช่องที่จำเป็นให้ครบถ้วนก่อนบันทึก ({Object.values(errors).join(', ')})</span>
           </div>
@@ -1163,246 +1098,73 @@ export const DepositForm: React.FC<DepositFormProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
           {/* Section 1: ข้อมูลเอกสารและหลักฐาน */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 border-t-4 border-t-blue-600 p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-start">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div className="flex items-center gap-2.5">
-                  <span className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold shadow-2xs">
-                    <FileText className="w-4 h-4" />
-                  </span>
-                  <h2 className="text-base font-bold text-slate-800">
-                    1. ข้อมูลเอกสารและหลักฐาน
-                  </h2>
-                </div>
-                {isSeparateRequestMode ? (
-                  <span className="text-[11px] text-blue-700 font-bold bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-full">
-                    โหมดหลายเลขคำขอ ({(formData.workers?.length || 1)} เลข)
-                  </span>
-                ) : (
-                  <span className="text-[11px] text-slate-500 font-medium bg-slate-100 px-2 py-0.5 rounded-full">
-                    1 เลขคำขอหลัก
-                  </span>
-                )}
+          <div className="bg-white/90 backdrop-blur-md rounded-2xl border border-slate-200/80 border-t-4 border-t-blue-600 p-5 sm:p-6 shadow-[0_4px_24px_-4px_rgba(15,23,42,0.06)] hover:shadow-[0_16px_36px_-4px_rgba(30,58,138,0.12)] hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-start ring-1 ring-white/80 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl pointer-events-none group-hover:bg-blue-500/10 transition-colors" />
+            <div className="space-y-4 relative">
+              <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+                <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold shadow-sm shadow-blue-500/30">
+                  <FileText className="w-4 h-4" />
+                </span>
+                <h2 className="text-base font-bold text-slate-800">
+                  1. ข้อมูลเอกสารและหลักฐาน
+                </h2>
               </div>
 
-              {/* ส่วนกำหนดเลขที่คำขอ (Request No.) รองรับทั้งเลขเดียว และ มากกว่า 1 เลขต่อนายจ้างเดียว) */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between flex-wrap gap-1.5">
-                  <label className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
+              {/* เลขที่คำขอ (รองรับทั้ง 1 เลข และคั่นด้วยเครื่องหมายจุลภาคหากมีหลายเลข) */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
+                  <label className="text-xs font-semibold text-slate-800">
                     เลขที่คำขอ (Request No.) <span className="text-red-500">*</span>
                   </label>
-                  
-                  {/* ปุ่มสลับโหมด: 1 เลขคำขอ vs แยกตามรายคน */}
-                  <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsSeparateRequestMode(false);
-                        const list = splitRequestNumbers(formData.requestNumber);
-                        if (list[0]) {
-                          handleInputChange('requestNumber', list[0]);
-                        }
-                      }}
-                      className={`px-2 py-0.5 text-[11px] font-medium rounded-md transition cursor-pointer ${
-                        !isSeparateRequestMode 
-                          ? 'bg-white text-blue-700 shadow-2xs font-bold' 
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                    >
-                      1 เลขคำขอ (ใช้ร่วมกัน)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsSeparateRequestMode(true);
-                        if ((formData.workers?.length || 0) < 2) {
-                          handleAddWorker();
-                        }
-                      }}
-                      className={`px-2 py-0.5 text-[11px] font-medium rounded-md transition cursor-pointer ${
-                        isSeparateRequestMode 
-                          ? 'bg-blue-600 text-white shadow-2xs font-bold' 
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                    >
-                      ระบุแยกรายคน ({Math.max(2, formData.workers?.length || 1)} เลข)
-                    </button>
+                  <span className="text-[11px] text-slate-500 font-normal">
+                    (หากมีหลายเลข ให้คั่นด้วยเครื่องหมายจุลภาค , )
+                  </span>
+                </div>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={formData.requestNumber}
+                    onChange={handleRequestNumberChange}
+                    onBlur={handleRequestNumberBlur}
+                    placeholder="เช่น 69144008610001 หรือคั่นด้วยจุลภาคหากมีหลายเลขคำขอ"
+                    className={`w-full px-3.5 py-2 text-sm rounded-lg border font-mono pr-24 ${
+                      errors.requestNumber 
+                        ? 'border-red-400 bg-red-50/30 ring-1 ring-red-400' 
+                        : formData.requestNumber && splitRequestNumbers(formData.requestNumber).length > 0 && splitRequestNumbers(formData.requestNumber).every(n => n.length === 14 && n.startsWith('691'))
+                        ? 'border-emerald-400 bg-emerald-50/20 ring-1 ring-emerald-400'
+                        : 'border-slate-300'
+                    } focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all`}
+                  />
+                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[11px] font-mono pointer-events-none">
+                    {splitRequestNumbers(formData.requestNumber).length > 1 ? (
+                      <span className="text-blue-700 font-bold bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded text-[11px]">
+                        {splitRequestNumbers(formData.requestNumber).length} เลขคำขอ
+                      </span>
+                    ) : formData.requestNumber ? (
+                      <span className={`${
+                        formData.requestNumber.length === 14 && formData.requestNumber.startsWith('691')
+                          ? 'text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-300 flex items-center gap-0.5'
+                          : formData.requestNumber && !formData.requestNumber.startsWith('691'.slice(0, Math.min(3, formData.requestNumber.length)))
+                          ? 'text-red-700 font-bold bg-red-50 px-1.5 py-0.5 rounded border border-red-300'
+                          : 'text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded'
+                      }`}>
+                        {formData.requestNumber.length === 14 && formData.requestNumber.startsWith('691') && '✓ '}
+                        {formData.requestNumber.length}/14
+                      </span>
+                    ) : null}
                   </div>
                 </div>
 
-                {/* โหมด 1: เลขคำขอเดียว (Single Mode) */}
-                {!isSeparateRequestMode ? (
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[11px] text-slate-500 font-normal">
-                        (ใช้เลขคำขอนี้กับแรงงานทุกคนของนายจ้างรายนี้ · บังคับขึ้นต้นด้วย 691 จำนวน 14 หลัก)
+                {/* แสดงสรุปรายการเมื่อระบุหลายเลขคำขอ */}
+                {splitRequestNumbers(formData.requestNumber).length > 1 && (
+                  <div className="mt-1.5 p-2 rounded-lg bg-blue-50/80 border border-blue-200 flex flex-wrap items-center gap-1 text-xs">
+                    <span className="text-blue-900 font-bold text-[11px]">ระบุ {splitRequestNumbers(formData.requestNumber).length} เลขคำขอ:</span>
+                    {splitRequestNumbers(formData.requestNumber).map((num, i) => (
+                      <span key={i} className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-white border border-blue-300 text-blue-800 font-mono text-[11px] font-semibold">
+                        <span className="text-slate-400 font-sans text-[10px]">คนที่ {i + 1}:</span>
+                        <span>{num}</span>
                       </span>
-                    </div>
-
-                    <div className="relative">
-                      <input
-                        type="text"
-                        maxLength={14}
-                        value={formData.requestNumber}
-                        onChange={handleRequestNumberChange}
-                        onBlur={handleRequestNumberBlur}
-                        placeholder="กรอกเลขที่คำขอ 14 หลัก (ต้องขึ้นต้นด้วย 691 เสมอ)"
-                        className={`w-full px-3.5 py-2 text-sm rounded-lg border font-mono pr-16 ${
-                          errors.requestNumber 
-                            ? 'border-red-400 bg-red-50/30 ring-1 ring-red-400' 
-                            : formData.requestNumber && formData.requestNumber.length === 14 && formData.requestNumber.startsWith('691')
-                            ? 'border-emerald-400 bg-emerald-50/20 ring-1 ring-emerald-400'
-                            : 'border-slate-300'
-                        } focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all`}
-                      />
-                      <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[11px] font-mono pointer-events-none">
-                        {formData.requestNumber ? (
-                          <span className={`${
-                            formData.requestNumber.length === 14 && formData.requestNumber.startsWith('691')
-                              ? 'text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-300 flex items-center gap-0.5'
-                              : formData.requestNumber && !formData.requestNumber.startsWith('691'.slice(0, Math.min(3, formData.requestNumber.length)))
-                              ? 'text-red-700 font-bold bg-red-50 px-1.5 py-0.5 rounded border border-red-300'
-                              : 'text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded'
-                          }`}>
-                            {formData.requestNumber.length === 14 && formData.requestNumber.startsWith('691') && '✓ '}
-                            {formData.requestNumber.length}/14
-                          </span>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    {/* Quick switch to multi-number link */}
-                    <div className="mt-1 flex items-center justify-between text-[11px]">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsSeparateRequestMode(true);
-                          if ((formData.workers?.length || 0) < 2) {
-                            handleAddWorker();
-                          }
-                        }}
-                        className="text-blue-600 hover:text-blue-800 font-medium inline-flex items-center gap-1 hover:underline cursor-pointer"
-                      >
-                        <Plus className="w-3 h-3" />
-                        <span>ต้องการระบุเลขคำขอมากกว่า 1 เลข (ต่อนายจ้างเดียว) คลิกที่นี่</span>
-                      </button>
-
-                      {formData.requestNumber && formData.requestNumber.length < (reqConfig.length || 14) && (
-                        <span className="text-amber-600 font-mono">
-                          (เหลืออีก {(reqConfig.length || 14) - formData.requestNumber.length} หลัก)
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  /* โหมด 2: ระบุแยกรายคนใน Section 1 โดยตรง (Multi Request Number Mode) */
-                  <div className="space-y-2 pt-1 animate-in fade-in duration-150">
-                    <div className="flex items-center justify-between text-[11px] text-slate-500 pb-1">
-                      <span>ระบุเลขที่คำขอแยกสำหรับแรงงานแต่ละคน ({reqConfig.length || 14} หลัก):</span>
-                      <button
-                        type="button"
-                        onClick={() => setShowBulkPasteModal(true)}
-                        className="text-purple-700 hover:text-purple-900 font-semibold bg-purple-50 hover:bg-purple-100 border border-purple-200 px-2 py-0.5 rounded-md inline-flex items-center gap-1 cursor-pointer transition"
-                        title="คลิกเพื่อวางหลายเลขพร้อมกันจากไฟล์ Excel หรือคั่นด้วยเครื่องหมายจุลภาค"
-                      >
-                        <span>📋 วางหลายเลขพร้อมกัน</span>
-                      </button>
-                    </div>
-
-                    <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
-                      {(formData.workers || []).map((w, idx) => {
-                        const currentReq = w.requestNumber !== undefined 
-                          ? w.requestNumber 
-                          : (splitRequestNumbers(formData.requestNumber)[idx] || '');
-                        const isComplete = currentReq.length === (reqConfig.length || 14) && (!reqConfig.prefix || currentReq.startsWith(reqConfig.prefix));
-
-                        return (
-                          <div key={w.id || idx} className="p-2.5 rounded-xl border border-blue-200/80 bg-blue-50/50 space-y-1 transition hover:border-blue-300">
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="font-bold text-blue-950 flex items-center gap-1.5 text-[11px]">
-                                <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] flex items-center justify-center font-bold shadow-2xs">
-                                  {idx + 1}
-                                </span>
-                                <span>เลขที่คำขอคนที่ {idx + 1}:</span>
-                                {w.name && (
-                                  <span className="text-[10px] font-normal text-slate-500 truncate max-w-[110px]">
-                                    ({w.name})
-                                  </span>
-                                )}
-                              </span>
-
-                              <div className="flex items-center gap-1.5 text-[11px] font-mono">
-                                {isComplete ? (
-                                  <span className="text-emerald-700 font-bold bg-emerald-50 border border-emerald-300 px-1.5 py-0.2 rounded text-[10px]">
-                                    ✓ ครบ {reqConfig.length || 14} หลัก
-                                  </span>
-                                ) : (
-                                  <span className="text-slate-500 bg-white border border-slate-200 px-1.5 py-0.2 rounded text-[10px]">
-                                    {currentReq.length}/{reqConfig.length || 14}
-                                  </span>
-                                )}
-                                {(formData.workers?.length || 0) > 1 && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRemoveWorker(idx)}
-                                    className="text-slate-400 hover:text-red-600 p-0.5 rounded transition cursor-pointer"
-                                    title={`ลบรายการแรงงานคนที่ ${idx + 1}`}
-                                  >
-                                    <Trash2 className="w-3 h-3" />
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-
-                            <div className="relative">
-                              <input
-                                type="text"
-                                maxLength={14}
-                                value={currentReq}
-                                onChange={(e) => handleWorkerRequestNumberChange(idx, e.target.value)}
-                                placeholder="กรอกเลขที่คำขอ 14 หลัก (ต้องขึ้นต้นด้วย 691 เสมอ)"
-                                className={`w-full px-3 py-1.5 text-xs rounded-lg border font-mono pr-14 ${
-                                  isComplete 
-                                    ? 'border-emerald-400 bg-emerald-50/30 ring-1 ring-emerald-300' 
-                                    : 'border-slate-300 bg-white'
-                                } focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition`}
-                              />
-                              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[10px] font-mono pointer-events-none">
-                                {currentReq ? (
-                                  <span className={`${
-                                    currentReq.length === 14 && currentReq.startsWith('691')
-                                      ? 'text-emerald-700 font-bold'
-                                      : currentReq && !currentReq.startsWith('691'.slice(0, Math.min(3, currentReq.length)))
-                                      ? 'text-red-600 font-bold'
-                                      : 'text-slate-400'
-                                  }`}>
-                                    {currentReq.length === 14 && currentReq.startsWith('691') && '✓ '}
-                                    {currentReq.length}/14
-                                  </span>
-                                ) : null}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* ปุ่มเพิ่มเลขที่คำขอคนถัดไป */}
-                    <div className="pt-1 flex items-center justify-between gap-2 flex-wrap">
-                      <button
-                        type="button"
-                        onClick={handleAddWorker}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-dashed border-blue-300 bg-blue-50/80 hover:bg-blue-100 text-blue-700 text-xs font-semibold transition cursor-pointer"
-                        title="เพิ่มเลขที่คำขอและรายการแรงงานคนต่อไป"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>+ เพิ่มเลขที่คำขอ (คนที่ {(formData.workers?.length || 0) + 1})</span>
-                      </button>
-
-                      <span className="text-[10px] text-slate-500">
-                        รวมทั้งสิ้น <strong>{formData.workers?.length || 1}</strong> เลขคำขอ
-                      </span>
-                    </div>
+                    ))}
                   </div>
                 )}
 
@@ -1474,19 +1236,20 @@ export const DepositForm: React.FC<DepositFormProps> = ({
           </div>
 
           {/* Section 2: ข้อมูลนายจ้าง / สถานประกอบการ */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 border-t-4 border-t-teal-600 p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
-            <div className="space-y-4">
+          <div className="bg-white/90 backdrop-blur-md rounded-2xl border border-slate-200/80 border-t-4 border-t-teal-600 p-5 sm:p-6 shadow-[0_4px_24px_-4px_rgba(15,23,42,0.06)] hover:shadow-[0_16px_36px_-4px_rgba(13,148,136,0.12)] hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between ring-1 ring-white/80 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/5 rounded-full blur-2xl pointer-events-none group-hover:bg-teal-500/10 transition-colors" />
+            <div className="space-y-4 relative">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div className="flex items-center gap-2.5">
-                  <span className="w-8 h-8 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center font-bold shadow-2xs">
+                  <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 text-white flex items-center justify-center font-bold shadow-sm shadow-teal-500/30">
                     <User className="w-4 h-4" />
                   </span>
                   <h2 className="text-base font-bold text-slate-800">
                     2. ข้อมูลนายจ้าง / สถานประกอบการ
                   </h2>
                 </div>
-                <span className="text-[11px] text-teal-700 font-medium bg-teal-50 px-2.5 py-0.5 rounded-full border border-teal-200">
-                  {formData.employerType === 'company' ? 'นิติบุคคล / บริษัท' : 'บุคคลธรรมดา'} (เลือกให้อัตโนมัติ)
+                <span className="text-[11px] text-teal-800 font-semibold bg-teal-50/90 backdrop-blur-xs px-2.5 py-0.5 rounded-full border border-teal-200/80 shadow-2xs">
+                  {formData.employerType === 'company' ? 'นิติบุคคล / บริษัท' : 'บุคคลธรรมดา'}
                 </span>
               </div>
 
@@ -1685,10 +1448,11 @@ export const DepositForm: React.FC<DepositFormProps> = ({
           </div>
 
           {/* Section 3: รายการคนต่างด้าว & ยอดเงิน */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 border-t-4 border-t-indigo-600 p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
-            <div className="space-y-4">
+          <div className="bg-white/90 backdrop-blur-md rounded-2xl border border-slate-200/80 border-t-4 border-t-indigo-600 p-5 sm:p-6 shadow-[0_4px_24px_-4px_rgba(15,23,42,0.06)] hover:shadow-[0_16px_36px_-4px_rgba(79,70,229,0.12)] hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between ring-1 ring-white/80 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none group-hover:bg-indigo-500/10 transition-colors" />
+            <div className="space-y-4 relative">
               <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
-                <span className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold shadow-2xs">
+                <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center font-bold shadow-sm shadow-indigo-500/30">
                   <Users className="w-4 h-4" />
                 </span>
                 <h2 className="text-base font-bold text-slate-800">
@@ -1968,10 +1732,11 @@ export const DepositForm: React.FC<DepositFormProps> = ({
         </div>
 
         {/* Section 4: ข้อมูลเจ้าหน้าที่ผู้รับเงิน / สำนักงานจัดหางานที่รับคำขอชำระเงินค่าวางหลักประกัน (Full width row) */}
-        <div className="bg-white rounded-2xl border border-slate-200/90 border-t-4 border-t-amber-500 p-5 sm:p-6 shadow-sm hover:shadow-md transition-shadow">
+        {/* Section 4: ข้อมูลเจ้าหน้าที่ผู้รับเงิน / สำนักงานจัดหางาน */}
+        <div className="bg-white/90 backdrop-blur-md rounded-2xl border border-slate-200/80 border-t-4 border-t-amber-500 p-5 sm:p-6 shadow-[0_4px_24px_-4px_rgba(15,23,42,0.06)] hover:shadow-md transition-all ring-1 ring-white/80">
           <div className="flex items-center pb-3.5 border-b border-slate-100 mb-4">
             <div className="flex items-center gap-2.5">
-              <span className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold shadow-2xs">
+              <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 text-white flex items-center justify-center font-bold shadow-sm shadow-amber-500/30">
                 <ShieldCheck className="w-4 h-4" />
               </span>
               <h2 className="text-base font-bold text-slate-800">
@@ -2094,12 +1859,12 @@ export const DepositForm: React.FC<DepositFormProps> = ({
       </div>
 
       {/* Real-time Summary Bar before pressing Save (สรุปข้อมูลก่อนกดบันทึก) */}
-      <div className="px-6 sm:px-8 py-3.5 bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-emerald-50/90 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
+      <div className="px-6 sm:px-8 py-3.5 bg-gradient-to-r from-blue-50/90 via-indigo-50/80 to-emerald-50/90 backdrop-blur-md border-t border-slate-200/80 flex flex-wrap items-center justify-between gap-3 text-xs shadow-inner">
         <div className="flex items-center gap-3.5 flex-wrap">
           <span className="text-slate-600 flex items-center gap-1.5 font-medium">
             <Building2 className="w-4 h-4 text-blue-600 shrink-0" />
             <span>นายจ้างที่จะบันทึก:</span>
-            <strong className="text-blue-950 font-bold bg-white px-2.5 py-0.5 rounded-lg border border-blue-200 shadow-2xs max-w-xs truncate">
+            <strong className="text-blue-950 font-bold bg-white/90 backdrop-blur-xs px-2.5 py-1 rounded-lg border border-blue-200/80 shadow-2xs max-w-xs truncate">
               {currentDeterminedName || 'ยังไม่ได้ระบุ'}
             </strong>
           </span>
@@ -2107,32 +1872,32 @@ export const DepositForm: React.FC<DepositFormProps> = ({
           <span className="text-slate-600 flex items-center gap-1.5 font-medium">
             <Users className="w-4 h-4 text-emerald-600 shrink-0" />
             <span>จำนวนแรงงาน:</span>
-            <strong className="text-emerald-900 font-mono font-bold bg-white px-2.5 py-0.5 rounded-lg border border-emerald-200 shadow-2xs">
+            <strong className="text-emerald-900 font-mono font-bold bg-white/90 backdrop-blur-xs px-2.5 py-1 rounded-lg border border-emerald-200/80 shadow-2xs">
               {formData.workers?.length || 1} ราย
             </strong>
           </span>
 
           <span className="text-slate-600 flex items-center gap-1.5 font-medium">
             <span>ยอดรวม:</span>
-            <strong className="text-indigo-950 font-mono font-extrabold bg-white px-2.5 py-0.5 rounded-lg border border-indigo-200 shadow-2xs">
+            <strong className="text-indigo-950 font-mono font-extrabold bg-white/90 backdrop-blur-xs px-2.5 py-1 rounded-lg border border-indigo-200/80 shadow-2xs text-sm">
               {formatThaiCurrency(totalAmount)}
             </strong>
           </span>
         </div>
 
-        <div className="inline-flex items-center gap-1.5 text-[11px] text-blue-700 bg-blue-100/70 border border-blue-200 px-2.5 py-1 rounded-lg font-medium">
+        <div className="inline-flex items-center gap-1.5 text-[11px] text-blue-800 bg-white/80 backdrop-blur-xs border border-blue-200 px-3 py-1 rounded-full font-medium shadow-2xs">
           <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
           <span>เมื่อกดปุ่มบันทึก จะมีหน้าต่างสรุปข้อมูลให้ตรวจสอบอีกครั้ง</span>
         </div>
       </div>
 
       {/* Bottom Action Footer Bar */}
-      <div className="px-6 py-4 sm:px-8 sm:py-5 bg-white border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="px-6 py-4 sm:px-8 sm:py-5 bg-white/95 backdrop-blur-md border-t border-slate-200/80 flex flex-col sm:flex-row items-center justify-between gap-4">
         {/* Left button: ล้างแบบฟอร์ม */}
         <button
           type="button"
           onClick={handleReset}
-          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-slate-300 text-slate-700 bg-white hover:bg-slate-50 active:bg-slate-100 transition-all text-sm font-medium shadow-xs cursor-pointer"
+          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 bg-white/80 hover:bg-slate-100 active:bg-slate-200 transition-all text-sm font-semibold shadow-xs hover:shadow-sm cursor-pointer"
         >
           <RotateCcw className="w-4 h-4 text-slate-500" />
           <span>ล้างแบบฟอร์ม</span>
@@ -2143,7 +1908,7 @@ export const DepositForm: React.FC<DepositFormProps> = ({
           <button
             type="button"
             onClick={() => handleSubmit(false)}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-3 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-800 text-white transition-all text-sm sm:text-base font-bold shadow-lg shadow-blue-600/30 cursor-pointer active:scale-98"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-600 text-white transition-all text-sm sm:text-base font-bold shadow-[0_8px_25px_-4px_rgba(37,99,235,0.4)] hover:shadow-[0_12px_32px_-4px_rgba(37,99,235,0.5)] hover:-translate-y-0.5 active:translate-y-0 active:scale-98 cursor-pointer ring-1 ring-white/20"
           >
             <Check className="w-5 h-5 text-white" />
             <span>บันทึกข้อมูลหลักประกัน</span>
