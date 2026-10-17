@@ -1233,7 +1233,7 @@ export const DepositForm: React.FC<DepositFormProps> = ({
                 </div>
               </div>
 
-              {/* กล่องคำอธิบาย: พื้นที่ว่างใต้วันที่ชำระเงิน กรณีที่นายจ้างรายเดียวมีแรงงานหลายคน (เน้นกรอบและเน้นหัวข้อชัดเจน) */}
+              {/* กล่องคำอธิบาย: พื้นที่ว่างใต้วันที่ชำระเงิน กรณีที่นายจ้างมีแรงงานหลายคน (เน้นกรอบและเน้นหัวข้อชัดเจน) */}
               <div className="pt-2">
                 <div className="rounded-2xl border-2 border-blue-400/90 bg-gradient-to-br from-blue-50/95 via-white/95 to-indigo-50/80 p-4 space-y-3 backdrop-blur-md shadow-[0_10px_28px_-4px_rgba(37,99,235,0.18)] ring-2 ring-blue-200/70 transition-all duration-300 hover:border-blue-500 hover:shadow-[0_14px_34px_-4px_rgba(37,99,235,0.22)]">
                   {/* หัวข้อหลักที่เน้นชัดเจน */}
@@ -1243,7 +1243,7 @@ export const DepositForm: React.FC<DepositFormProps> = ({
                     </span>
                     <div className="flex-1 flex items-center justify-between flex-wrap gap-1">
                       <span className="text-blue-950 font-extrabold text-xs sm:text-[13px] tracking-tight">
-                        คำอธิบาย: กรณีที่นายจ้างรายเดียวมีแรงงานหลายคน
+                        คำอธิบาย: กรณีที่นายจ้างมีแรงงานหลายคน
                       </span>
                       <span className="text-[10px] font-bold text-blue-700 bg-blue-100/90 border border-blue-300 px-2 py-0.5 rounded-full shadow-2xs">
                         สะดวก 2 วิธี
@@ -1252,7 +1252,7 @@ export const DepositForm: React.FC<DepositFormProps> = ({
                   </div>
 
                   <p className="text-[11.5px] text-slate-800 leading-relaxed font-semibold">
-                    สำหรับกรณีที่นายจ้างรายเดียวมีแรงงานหลายคนได้อย่างสมบูรณ์แบบ โดยสามารถทำได้สะดวกถึง <span className="text-blue-700 font-extrabold underline decoration-blue-400 decoration-2 underline-offset-2">2 วิธี</span> ดังนี้ครับ:
+                    สำหรับกรณีที่นายจ้างมีแรงงานหลายคนสามารถเลือกบันทึกข้อมูลได้ <span className="text-blue-700 font-extrabold underline decoration-blue-400 decoration-2 underline-offset-2">2 วิธี</span> ดังนี้:
                   </p>
 
                   <div className="space-y-2.5 text-[11px]">
