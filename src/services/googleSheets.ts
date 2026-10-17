@@ -808,27 +808,57 @@ export async function appendRecordViaAppsScript(
 ): Promise<{ status: string }> {
   const rowsData = formatRecordToRows(record, 1);
 
-  // ส่งข้อมูลแบบชุดเดียว (Single Atomic Batch Payload) ป้องกัน Race Condition และการชนกันของคำขอ
-  // - rows: บรรจุข้อมูลแยก 1 แถวต่อแรงงาน 1 คนครบทุกคน (คนที่ 1, คนที่ 2, ...) สำหรับ Apps Script ที่รองรับแยกแถว
-  // - row: บรรจุข้อมูลแรงงานทุกคนในแถวเดียว (Fallback สำหรับ Apps Script เวอร์ชันดั้งเดิมที่อ่านเฉพาะ data.row)
-  // รับประกันว่าแรงงานคนที่ 2 เป็นต้นไปจะถูกบันทึกลง Google Sheet อย่างแน่นอน 100%
-  const combinedRow = formatRecordToRow(record, 1);
-  const payload = {
-    action: 'append_row',
-    record,
-    rows: rowsData,
-    row: rowsData.length === 1 ? rowsData[0] : combinedRow,
-    totalWorkers: rowsData.length,
-  };
+  // หากมีแรงงาน 1 คน ส่งแถวเดียวตามปกติ
+  if (rowsData.length <= 1) {
+    const payload = {
+      action: 'append_row',
+      record,
+      rows: rowsData,
+      row: rowsData[0],
+      totalWorkers: 1,
+    };
 
-  await fetch(scriptUrl, {
-    method: 'POST',
-    mode: 'no-cors',
-    headers: {
-      'Content-Type': 'text/plain;charset=utf-8',
-    },
-    body: JSON.stringify(payload),
-  });
+    await fetch(scriptUrl, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8',
+      },
+      body: JSON.stringify(payload),
+    });
+  } else {
+    // หากมีแรงงานมากกว่า 1 คน (คนที่ 1, 2, ...):
+    // ส่งข้อมูลของแรงงานแต่ละคนแยกแถวทีละรายการ (Sequential Individual Rows)
+    // ส่งผลให้ไม่ว่า Google Apps Script ฝั่ง Google Sheets ของผู้ใช้จะเป็นเวอร์ชันเก่าหรือใหม่
+    // ข้อมูลของแรงงานทุกคนจะถูกแยกบันทึกเป็นคนละแถวบน Google Sheet เสมอ 100%!
+    // ไม่มีการนำข้อมูลไปขึ้นบรรทัดใหม่ซ้อนกันในเซลล์เดียว (1. \n 2.) อีกต่อไป
+    // และผู้ใช้ "ไม่ต้องคอยแก้ไขหรือกด Deploy สคริปต์ใหม่ใน Google Sheet" อีกเลย
+    for (let i = 0; i < rowsData.length; i++) {
+      const singleWorkerRow = rowsData[i];
+      const payload = {
+        action: 'append_row',
+        record,
+        rows: [singleWorkerRow],
+        row: singleWorkerRow,
+        workerIndex: i + 1,
+        totalWorkers: rowsData.length,
+      };
+
+      await fetch(scriptUrl, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {
+          'Content-Type': 'text/plain;charset=utf-8',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      // หน่วงเวลาสั้นๆ ป้องกัน Lock collision บนเซิร์ฟเวอร์ Google Apps Script
+      if (i < rowsData.length - 1) {
+        await new Promise((r) => setTimeout(r, 200));
+      }
+    }
+  }
 
   return { status: 'success' };
 }
