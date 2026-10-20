@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Printer, Download, Share2, CheckCircle2 } from 'lucide-react';
 import { DepositRecord } from '../types/deposit';
+import { normalizeAlienCategory } from '../data/initialData';
 import { formatThaiCurrency, formatNumber, formatThaiDate } from '../utils/thaiBahtText';
 
 interface DepositReceiptModalProps {
@@ -173,7 +174,7 @@ export const DepositReceiptModal: React.FC<DepositReceiptModalProps> = ({ record
                       ค่าวางหลักประกันการทำงานของคนต่างด้าว
                     </div>
                     <div className="text-xs text-slate-600 mt-1">
-                      ประเภท/มติ: <span className="font-medium text-slate-800">{record.alienCategory}</span>
+                      ประเภท/มติ: <span className="font-medium text-slate-800">{normalizeAlienCategory(record.alienCategory)}</span>
                     </div>
 
                     {/* รายชื่อแรงงานต่างด้าว (เลขประจำตัว 13 หลัก, ชื่อ, สัญชาติ) */}

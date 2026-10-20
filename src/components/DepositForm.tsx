@@ -20,6 +20,7 @@ import { FormDataState, DepositRecord, ForeignWorker } from '../types/deposit';
 import { 
   PAYMENT_CHANNELS, 
   ALIEN_CATEGORIES, 
+  normalizeAlienCategory,
   EMPLOYMENT_OFFICES, 
   BANGKOK_EMPLOYMENT_OFFICES,
   PROVINCIAL_EMPLOYMENT_OFFICES,
@@ -401,6 +402,9 @@ export const DepositForm: React.FC<DepositFormProps> = ({
     let cleanValue = value;
     if (field === 'name') {
       cleanValue = value.toUpperCase().replace(/[^A-Z\s\.\-']/g, '');
+    } else if (field === 'category') {
+      // บังคับล็อคประเภทแรงงาน / มติ ให้เป็น 1 ใน 3 ตัวเลือกที่ตั้งไว้เสมอ
+      cleanValue = normalizeAlienCategory(value);
     }
 
     setFormData(prev => {
@@ -411,7 +415,7 @@ export const DepositForm: React.FC<DepositFormProps> = ({
           idCardNumber: '',
           name: '',
           nationality: NATIONALITIES[0],
-          category: prev.alienCategory || ALIEN_CATEGORIES[0],
+          category: normalizeAlienCategory(prev.alienCategory),
         };
       }
       currentWorkers[index] = {
@@ -419,11 +423,10 @@ export const DepositForm: React.FC<DepositFormProps> = ({
         [field]: cleanValue,
       };
 
-      // If category was changed, also update summarized alienCategory
-      let newAlienCategory = prev.alienCategory;
+      // บังคับล็อค alienCategory ให้อยู่ใน 3 ตัวเลือกเสมอ (ไม่สร้างข้อความ "หลากหลายประเภท (...)")
+      let newAlienCategory = normalizeAlienCategory(prev.alienCategory);
       if (field === 'category') {
-        const uniqueCategories = Array.from(new Set(currentWorkers.map(w => w.category || prev.alienCategory)));
-        newAlienCategory = uniqueCategories.length === 1 ? uniqueCategories[0] : `หลากหลายประเภท (${uniqueCategories.join(', ')})`;
+        newAlienCategory = normalizeAlienCategory(currentWorkers[0]?.category || cleanValue);
       }
 
       return {
@@ -694,11 +697,13 @@ export const DepositForm: React.FC<DepositFormProps> = ({
     const reqList = splitRequestNumbers(formData.requestNumber);
     const enrichedWorkers = (formData.workers || []).map((w, idx) => ({
       ...w,
+      category: normalizeAlienCategory(w.category || formData.alienCategory),
       requestNumber: w.requestNumber?.trim() || reqList[idx] || reqList[0] || formData.requestNumber || '',
     }));
 
     const newRecord: DepositRecord = {
       ...formData,
+      alienCategory: normalizeAlienCategory(enrichedWorkers[0]?.category || formData.alienCategory),
       paymentDate: chosenPaymentDate,
       employerType: isCompany ? 'company' : 'individual',
       employerName: determinedName,
@@ -1672,13 +1677,13 @@ export const DepositForm: React.FC<DepositFormProps> = ({
                           </select>
                         </div>
 
-                        {/* ประเภทแรงงานของคนนี้ */}
+                        {/* ประเภทแรงงานของคนนี้ (ล็อคเฉพาะ 3 ตัวเลือกที่กำหนดเท่านั้น) */}
                         <div>
                           <label className="block text-[11px] font-medium text-slate-600 mb-1">
                             ประเภทแรงงาน / มติ <span className="text-red-500">*</span>
                           </label>
                           <select
-                            value={worker.category || formData.alienCategory || ALIEN_CATEGORIES[0]}
+                            value={normalizeAlienCategory(worker.category || formData.alienCategory)}
                             onChange={(e) => handleWorkerChange(idx, 'category', e.target.value)}
                             className="w-full px-2 py-1.5 text-xs rounded-md border border-blue-200 bg-blue-50/40 text-blue-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
                           >

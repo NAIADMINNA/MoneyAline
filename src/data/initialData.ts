@@ -16,6 +16,47 @@ export const ALIEN_CATEGORIES = [
   'มติ ครม. 8 ก.ค. 2568',
 ];
 
+/**
+ * บังคับล็อคประเภทคนต่างด้าว / มติ ครม. ให้เป็น 1 ใน 3 ตัวเลือกที่กำหนดไว้เสมอ
+ * ป้องกันไม่ให้เกิดข้อความ "หลากหลายประเภท (...)" หรือตัวเลือกอื่นนอกเหนือจาก 3 ตัวเลือกนี้
+ */
+export function normalizeAlienCategory(raw?: string | null): string {
+  const str = String(raw || '').trim();
+  if (!str) return ALIEN_CATEGORIES[0];
+
+  // 1. หากตรงกับ 1 ใน 3 ตัวเลือกที่ล็อคไว้อยู่แล้ว ใช้ค่านั้นทันที
+  if (ALIEN_CATEGORIES.includes(str)) {
+    return str;
+  }
+
+  // 2. กรณีข้อมูลเก่าที่เป็นข้อความ "หลากหลายประเภท (...)" ให้ดึงตัวเลือกแรกที่อยู่ในวงเล็บออกมา
+  if (str.startsWith('หลากหลายประเภท')) {
+    const innerMatch = str.match(/\((.*)\)/);
+    if (innerMatch && innerMatch[1]) {
+      const parts = innerMatch[1].split(',').map(s => s.trim());
+      for (const p of parts) {
+        if (ALIEN_CATEGORIES.includes(p)) {
+          return p;
+        }
+      }
+    }
+  }
+
+  // 3. ตรวจสอบจากคำสำคัญเพื่อจับคู่เข้ากับ 3 ตัวเลือกที่ล็อคไว้เท่านั้น
+  if (str.includes('8 ก.ค.') || str.includes('2568')) {
+    return 'มติ ครม. 8 ก.ค. 2568';
+  }
+  if (str.includes('24 ก.ย.') || str.includes('2567')) {
+    return 'มติ ครม. 24 ก.ย. 2567';
+  }
+  if (str.toUpperCase().includes('MOU')) {
+    return 'MOU (2 ปีแรก)';
+  }
+
+  // 4. บังคับคืนค่าตัวเลือกที่ 1 เป็นค่าเริ่มต้นเสมอ
+  return ALIEN_CATEGORIES[0];
+}
+
 export const NATIONALITIES = [
   'เมียนมา (Myanmar)',
   'กัมพูชา (Cambodia)',

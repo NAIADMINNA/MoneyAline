@@ -13,7 +13,7 @@ import {
   Minimize2
 } from 'lucide-react';
 import { DepositRecord } from './types/deposit';
-import { INITIAL_RECORDS } from './data/initialData';
+import { INITIAL_RECORDS, normalizeAlienCategory } from './data/initialData';
 import { DepositForm } from './components/DepositForm';
 import { DepositReceiptModal } from './components/DepositReceiptModal';
 import { DepositLedger } from './components/DepositLedger';
@@ -33,6 +33,13 @@ import {
 import { User } from 'firebase/auth';
 import { VersionUpdateBanner } from './components/VersionUpdateBanner';
 import { useVersionAutoUpdate } from './utils/versionCheck';
+import {
+  recordPageVisit,
+  getVisitorCount,
+  getExportCount,
+  USAGE_STATS_UPDATED_EVENT,
+  UsageStatsData,
+} from './utils/usageStats';
 
 const STORAGE_KEY = 'doe_foreign_worker_deposits_v2';
 
@@ -40,18 +47,27 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'form' | 'ledger' | 'stats'>('form');
   const [records, setRecords] = useState<DepositRecord[]>(() => {
     try {
+      const sanitizeRecords = (list: DepositRecord[]): DepositRecord[] =>
+        list
+          .filter(
+            r => r.id !== 'rec-001' && r.id !== 'rec-002' && r.id !== 'rec-003' && r.requestNumber !== '69-09-0006'
+          )
+          .map(r => ({
+            ...r,
+            alienCategory: normalizeAlienCategory(r.alienCategory),
+            workers: (r.workers || []).map(w => ({
+              ...w,
+              category: normalizeAlienCategory(w.category || r.alienCategory),
+            })),
+          }));
+
       // 1. Try modern storage key
       const savedV2 = localStorage.getItem(STORAGE_KEY);
       if (savedV2) {
         const parsed = JSON.parse(savedV2);
         if (Array.isArray(parsed)) {
-          // Filter out obsolete demo items (rec-001, rec-002, rec-003)
-          const cleaned = parsed.filter(
-            r => r.id !== 'rec-001' && r.id !== 'rec-002' && r.id !== 'rec-003' && r.requestNumber !== '69-09-0006'
-          );
-          if (cleaned.length !== parsed.length) {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
-          }
+          const cleaned = sanitizeRecords(parsed);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
           return cleaned;
         }
       }
@@ -61,9 +77,7 @@ export default function App() {
       if (savedV1) {
         const parsed = JSON.parse(savedV1);
         if (Array.isArray(parsed)) {
-          const cleaned = parsed.filter(
-            r => r.id !== 'rec-001' && r.id !== 'rec-002' && r.id !== 'rec-003' && r.requestNumber !== '69-09-0006'
-          );
+          const cleaned = sanitizeRecords(parsed);
           localStorage.removeItem('doe_foreign_worker_deposits_v1');
           localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
           return cleaned;
@@ -126,63 +140,42 @@ export default function App() {
     ? 'w-full max-w-[98%] mx-auto transition-all duration-300' 
     : 'w-full max-w-[1600px] 2xl:max-w-[1720px] mx-auto transition-all duration-300';
 
-  // Counter tracking: ผู้เข้าใช้งานสะสม & ผู้กดส่งออกไฟล์สะสม (นับสะสมต่อเนื่องถาวร ไม่มีการรีเซ็ตหรือลบออกในแต่ละวัน)
-  const [visitorCount, setVisitorCount] = useState<number>(() => {
-    try {
-      localStorage.removeItem('doe_visitor_count'); // ล้างคีย์จำลองเวอร์ชันเก่า
-      const saved = localStorage.getItem('doe_all_time_visitor_count') || localStorage.getItem('doe_real_visitor_count');
-      if (saved !== null) {
-        const val = parseInt(saved, 10);
-        return isNaN(val) ? 0 : val;
-      }
-      return 0;
-    } catch {
-      return 0;
-    }
-  });
+  // Counter tracking: ผู้เข้าใช้งานสะสม & ผู้กดส่งออกไฟล์สะสม (นับสะสมต่อเนื่องถาวร และเพิ่มขึ้นทันทีทุกครั้งที่เปิดระบบหรือกดส่งออก)
+  const [visitorCount, setVisitorCount] = useState<number>(() => recordPageVisit());
+  const [exportClickCount, setExportClickCount] = useState<number>(() => getExportCount());
 
-  const [exportClickCount, setExportClickCount] = useState<number>(() => {
-    try {
-      localStorage.removeItem('doe_export_count'); // ล้างคีย์จำลองเวอร์ชันเก่า
-      const saved = localStorage.getItem('doe_all_time_export_count') || localStorage.getItem('doe_real_export_count');
-      if (saved !== null) {
-        const val = parseInt(saved, 10);
-        return isNaN(val) ? 0 : val;
-      }
-      return 0;
-    } catch {
-      return 0;
-    }
-  });
-
-  // นับจำนวนคนเข้าใช้งานจริง สะสมถาวรตลอดไป (ไม่มีการลบออกหรือรีเซ็ตในแต่ละวัน)
   useEffect(() => {
-    try {
-      const recorded = sessionStorage.getItem('doe_real_visit_session');
-      if (!recorded) {
-        sessionStorage.setItem('doe_real_visit_session', 'true');
-        setVisitorCount(prev => {
-          const next = prev + 1;
-          try { 
-            localStorage.setItem('doe_all_time_visitor_count', String(next));
-            localStorage.setItem('doe_real_visitor_count', String(next));
-          } catch {}
-          return next;
-        });
+    // ตรวจสอบการนับผู้เข้าใช้งานและอัปเดตตัวเลขทันทีที่มีการส่งออกไฟล์หรือเปิดแท็บใหม่
+    const ensuredVisit = recordPageVisit();
+    setVisitorCount(ensuredVisit);
+    setExportClickCount(getExportCount());
+
+    const handleStatsEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<UsageStatsData>;
+      if (customEvent.detail) {
+        setVisitorCount(customEvent.detail.visitorCount);
+        setExportClickCount(customEvent.detail.exportCount);
+      } else {
+        setVisitorCount(getVisitorCount());
+        setExportClickCount(getExportCount());
       }
-    } catch {}
+    };
+
+    const handleStorageChange = () => {
+      setVisitorCount(getVisitorCount());
+      setExportClickCount(getExportCount());
+    };
+
+    window.addEventListener(USAGE_STATS_UPDATED_EVENT, handleStatsEvent);
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener(USAGE_STATS_UPDATED_EVENT, handleStatsEvent);
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
-  // นับจำนวนครั้งที่กดส่งออกไฟล์ สะสมถาวรตลอดไป (ไม่มีการลบออกหรือรีเซ็ตในแต่ละวัน)
   const handleExportSuccess = () => {
-    setExportClickCount(prev => {
-      const next = prev + 1;
-      try { 
-        localStorage.setItem('doe_all_time_export_count', String(next));
-        localStorage.setItem('doe_real_export_count', String(next));
-      } catch {}
-      return next;
-    });
+    setExportClickCount(getExportCount());
   };
 
   const handlePasswordSuccess = () => {

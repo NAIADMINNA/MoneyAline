@@ -1,6 +1,8 @@
 import { DepositRecord } from '../types/deposit';
+import { normalizeAlienCategory } from '../data/initialData';
 import { formatToBuddhistDate, formatToBuddhistDateTime } from './thaiBahtText';
 import { SHEET_HEADERS } from '../services/googleSheets';
+import { incrementExportCount } from './usageStats';
 
 /**
  * Escapes a cell value for CSV format according to RFC 4180
@@ -26,13 +28,9 @@ export function exportDatabaseToCSV(
   selectedOffice: string = 'all'
 ): number {
   // Filter by employment office if specified
-  const filteredRecords = selectedOffice === 'all'
+  const filteredRecords = (!selectedOffice || selectedOffice === 'all')
     ? records
     : records.filter((r) => (r.employmentOffice || '').trim() === selectedOffice.trim());
-
-  if (filteredRecords.length === 0) {
-    return 0;
-  }
 
   // Exact 22 headers identical to the database sheet
   const headers = SHEET_HEADERS;
@@ -69,14 +67,14 @@ export function exportDatabaseToCSV(
         const rowCells: (string | number)[] = [
           seq++,                                                // 1. ลำดับที่
           paymentDateBE,                                        // 2. วันที่ชำระเงิน (พ.ศ.)
-          r.requestNumber || '',                                // 3. เลขที่คำขอ
+          w.requestNumber || r.requestNumber || '',             // 3. เลขที่คำขอ
           r.receiptBook || '',                                  // 4. เล่มที่ใบเสร็จ
           r.receiptNumber || '',                                // 5. เลขที่ใบเสร็จ
           employerType,                                         // 6. ประเภทนายจ้าง
           r.idCardNumber || '',                                 // 7. เลขประจำตัวผู้เสียภาษี/บัตรประชาชน
           r.employerName || '',                                 // 8. ชื่อนายจ้าง/สถานประกอบการ
           r.phoneNumber || '',                                  // 9. เบอร์โทรศัพท์
-          r.alienCategory || '',                                // 10. ประเภทคนต่างด้าว
+          normalizeAlienCategory(w.category || r.alienCategory), // 10. ประเภทคนต่างด้าว (ล็อค 3 ตัวเลือกเสมอ)
           1,                                                    // 11. จำนวนแรงงาน (1 คนต่อแถว)
           r.ratePerPerson || 1000,                              // 12. อัตราต่อคน (บาท)
           r.ratePerPerson || 1000,                              // 13. จำนวนเงิน (1,000 บาท ต่อแถว)
@@ -104,7 +102,7 @@ export function exportDatabaseToCSV(
         r.idCardNumber || '',
         r.employerName || '',
         r.phoneNumber || '',
-        r.alienCategory || '',
+        normalizeAlienCategory(r.alienCategory),
         r.alienCount || 0,
         r.ratePerPerson || 1000,
         r.totalAmount || 0,
@@ -135,7 +133,7 @@ export function exportDatabaseToCSV(
         .replace(/กรุงเทพมหานคร/g, 'กทม.')
         .replace(/จังหวัด/g, 'จ.')
         .replace(/[\/\s\\:*?"<>|]/g, '_')
-    : 'สำนักงานจัดหางาน';
+    : 'ทุกสำนักงานจัดหางาน';
 
   const filename = `รายงานฐานข้อมูลเงินหลักประกัน_${officeLabel}_${dateStrBE}.csv`;
 
@@ -149,5 +147,8 @@ export function exportDatabaseToCSV(
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 
-  return filteredRecords.length;
+  // นับเพิ่มสถิติการนำออกข้อมูล (+1 ทันทีทุกครั้งที่ส่งออกไฟล์ CSV สำเร็จ)
+  incrementExportCount();
+
+  return rows.length;
 }

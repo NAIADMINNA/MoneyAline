@@ -42,6 +42,7 @@ import {
   RequestNumberConfig, 
   DEFAULT_REQUEST_CONFIG 
 } from '../utils/requestNumberConfig';
+import { exportDatabaseToCSV } from '../utils/csvDatabaseExport';
 
 interface GoogleSheetsBarProps {
   user: User | null;
@@ -864,6 +865,42 @@ function doPost(e) {
                     <span>ทดสอบส่งสัญญาณอัปเดตให้ทุกหน้าจอ</span>
                   </button>
                 </div>
+              </div>
+
+              {/* ส่งออกข้อมูลทุกสำนักงานจัดหางาน (ข้อมูลทั้งหมด) เฉพาะผู้ดูแลระบบที่เข้าด้วยรหัสผ่านในหน้าจัดการ Webhook */}
+              <div className="bg-emerald-50/80 border border-emerald-200/90 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                <div className="flex items-start gap-2.5">
+                  <div className="p-1.5 rounded-lg bg-emerald-100 text-emerald-700 shrink-0 mt-0.5">
+                    <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-emerald-950 flex items-center gap-1.5 flex-wrap">
+                      <span>ส่งออกฐานข้อมูลรวม:</span>
+                      <span className="text-[10px] bg-emerald-100 text-emerald-800 font-semibold px-2 py-0.5 rounded-full border border-emerald-300">
+                        ทุกสำนักงานจัดหางาน (ข้อมูลทั้งหมด {records.length} รายการ)
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-emerald-800/90 mt-0.5 leading-relaxed">
+                      ดาวน์โหลดไฟล์ CSV ฐานข้อมูลของ <strong>ทุกสำนักงานจัดหางาน (ข้อมูลทั้งหมด)</strong> แบบแยก 1 แถวต่อแรงงาน 1 คน (สงวนสิทธิ์เฉพาะผู้มีรหัสผ่านจัดการ Webhook เท่านั้น)
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const exportedRows = exportDatabaseToCSV(records, 'all');
+                    onNotify(
+                      exportedRows > 0
+                        ? `ส่งออกไฟล์ CSV ทุกสำนักงานจัดหางาน (ข้อมูลทั้งหมด ${exportedRows} แถว) เรียบร้อยแล้ว`
+                        : `ส่งออกไฟล์ตารางฐานข้อมูล CSV ทุกสำนักงานจัดหางาน เรียบร้อยแล้ว`
+                    );
+                  }}
+                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer shrink-0"
+                  title="ดาวน์โหลดไฟล์ CSV ข้อมูลของทุกสำนักงานจัดหางานทั้งหมดในระบบ"
+                >
+                  <Download className="w-3.5 h-3.5 text-white" />
+                  <span>ส่งออก CSV ทุกสำนักงาน ({records.length})</span>
+                </button>
               </div>
 
               {/* Reset Statistics to 0 section (Moved here per user request) */}

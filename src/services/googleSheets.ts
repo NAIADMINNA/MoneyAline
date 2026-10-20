@@ -1,4 +1,5 @@
 import { DepositRecord, ForeignWorker } from '../types/deposit';
+import { normalizeAlienCategory } from '../data/initialData';
 import { 
   formatToBuddhistDate, 
   formatToBuddhistDateTime, 
@@ -380,7 +381,7 @@ export function formatRecordToRow(record: DepositRecord, fallbackSeq: number = 1
     record.idCardNumber || '',                           // 7. เลขประจำตัวผู้เสียภาษี/บัตรประชาชน
     record.employerName || '',                           // 8. ชื่อนายจ้าง/สถานประกอบการ
     record.phoneNumber || '',                            // 9. เบอร์โทรศัพท์
-    record.alienCategory || '',                          // 10. ประเภทคนต่างด้าว
+    normalizeAlienCategory(workers[0]?.category || record.alienCategory), // 10. ประเภทคนต่างด้าว (ล็อค 3 ตัวเลือกเสมอ)
     record.alienCount || 0,                              // 11. จำนวนคน
     record.ratePerPerson || 1000,                        // 12. อัตราต่อคน (บาท)
     record.totalAmount || 0,                             // 13. จำนวนเงินรวม (บาท)
@@ -439,7 +440,7 @@ export function formatRecordToRows(
       record.idCardNumber || '',                           // 7. เลขประจำตัวผู้เสียภาษี/บัตรประชาชน
       record.employerName || '',                           // 8. ชื่อนายจ้าง/สถานประกอบการ
       record.phoneNumber || '',                            // 9. เบอร์โทรศัพท์
-      record.alienCategory || '',                          // 10. ประเภทคนต่างด้าว
+      normalizeAlienCategory(w.category || record.alienCategory), // 10. ประเภทคนต่างด้าวของแรงงานคนนี้ (ล็อค 3 ตัวเลือกเสมอ)
       1,                                                   // 11. จำนวนคน (1 คนต่อแถว)
       rate,                                                // 12. อัตราต่อคน (บาท)
       rate,                                                // 13. จำนวนเงิน (1,000 บาท ต่อแถว คำนวณ SUM ได้แม่นยำ)
@@ -617,6 +618,7 @@ export function parseRowsToRecords(rows: any[][]): DepositRecord[] {
     const nats = (row[16] || '').split('\n').map((s: string) => s.replace(/^\d+\.\s*/, '').trim()).filter(Boolean);
     
     const countInRow = parseInt(String(row[10] || '').replace(/\D/g, ''), 10) || Math.max(names.length, ids.length, 1);
+    const normalizedRowCategory = normalizeAlienCategory(row[9]);
     const currentWorkers: ForeignWorker[] = [];
     for (let i = 0; i < Math.max(names.length, ids.length, countInRow); i++) {
       if (names[i] || ids[i]) {
@@ -625,6 +627,7 @@ export function parseRowsToRecords(rows: any[][]): DepositRecord[] {
           idCardNumber: ids[i] || '',
           name: names[i] || '',
           nationality: nats[i] || 'เมียนมา (Myanmar)',
+          category: normalizedRowCategory,
         });
       }
     }
@@ -665,7 +668,7 @@ export function parseRowsToRecords(rows: any[][]): DepositRecord[] {
       idCardNumber: row[6] || '',
       employerName: row[7] || '',
       phoneNumber: row[8] || '',
-      alienCategory: row[9] || '',
+      alienCategory: normalizeAlienCategory(item.workers[0]?.category || row[9]),
       alienCount: finalCount,
       ratePerPerson: parseInt(String(row[11] || '').replace(/\D/g, ''), 10) || 1000,
       totalAmount: finalAmount,

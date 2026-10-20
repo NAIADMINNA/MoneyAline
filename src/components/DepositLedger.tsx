@@ -15,6 +15,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { DepositRecord } from '../types/deposit';
+import { normalizeAlienCategory } from '../data/initialData';
 import { formatThaiCurrency, formatNumber, formatToBuddhistDate } from '../utils/thaiBahtText';
 import { exportDatabaseToCSV } from '../utils/csvDatabaseExport';
 
@@ -314,7 +315,7 @@ export const DepositLedger: React.FC<DepositLedgerProps> = ({
                         <span className="text-slate-400 text-xs">-</span>
                       )}
                       <div className="text-[11px] text-slate-400 mt-1">
-                        ประเภทหลัก: {item.alienCategory}
+                        ประเภทหลัก: {normalizeAlienCategory(item.alienCategory)}
                       </div>
                     </td>
 

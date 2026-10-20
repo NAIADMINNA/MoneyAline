@@ -20,7 +20,7 @@ import {
 import { DepositRecord } from '../types/deposit';
 import { formatThaiCurrency, formatNumber } from '../utils/thaiBahtText';
 import { exportDatabaseToCSV } from '../utils/csvDatabaseExport';
-import { BANGKOK_EMPLOYMENT_OFFICES, PROVINCIAL_EMPLOYMENT_OFFICES } from '../data/initialData';
+import { BANGKOK_EMPLOYMENT_OFFICES, PROVINCIAL_EMPLOYMENT_OFFICES, normalizeAlienCategory } from '../data/initialData';
 
 interface DepositStatsProps {
   records: DepositRecord[];
@@ -81,9 +81,16 @@ const book = String(r.receiptBook || '').trim();
     return list[0] || BANGKOK_EMPLOYMENT_OFFICES[0] || 'สำนักงานจัดหางานกรุงเทพมหานครพื้นที่ 1';
   });
 
+  // หากดึงข้อมูลจาก Google Sheet สำเร็จและสำนักงานที่เลือกอยู่เดิมไม่มีข้อมูล ให้สลับไปยังสำนักงานที่มีข้อมูลอัตโนมัติ
+  React.useEffect(() => {
+    if (activeOfficesInData.length > 0 && !activeOfficesInData.includes(selectedOffice)) {
+      setSelectedOffice(activeOfficesInData[0]);
+    }
+  }, [activeOfficesInData, selectedOffice]);
+
   const [exportSuccessMessage, setExportSuccessMessage] = useState<string | null>(null);
 
-  // Filter records by the chosen specific office (strictly 1 office)
+  // Filter records strictly by the chosen office
   const filteredRecordsForExport = useMemo(() => {
     if (!selectedOffice) return [];
     return cleanRecords.filter((r) => (r.employmentOffice || '').trim() === selectedOffice.trim());
@@ -123,10 +130,18 @@ const book = String(r.receiptBook || '').trim();
     });
   }, [officeStats]);
 
-  // Breakdown by alien category
+  // Breakdown by alien category (ล็อคเฉพาะ 3 ตัวเลือกที่กำหนดเท่านั้น)
   const categoryStats = useMemo(() => {
     return cleanRecords.reduce((acc, r) => {
-      acc[r.alienCategory] = (acc[r.alienCategory] || 0) + r.alienCount;
+      if (r.workers && r.workers.length > 0) {
+        r.workers.forEach(w => {
+          const cat = normalizeAlienCategory(w.category || r.alienCategory);
+          acc[cat] = (acc[cat] || 0) + 1;
+        });
+      } else {
+        const cat = normalizeAlienCategory(r.alienCategory);
+        acc[cat] = (acc[cat] || 0) + (r.alienCount || 1);
+      }
       return acc;
     }, {} as Record<string, number>);
   }, [cleanRecords]);
@@ -157,20 +172,14 @@ const book = String(r.receiptBook || '').trim();
     return Object.entries(nationalityStats).sort(([, a], [, b]) => b - a);
   }, [nationalityStats]);
 
-  // Handle Export CSV (strictly for the chosen employment office)
+  // Handle Export CSV (exportDatabaseToCSV automatically increments export counter)
   const handleExportCSV = () => {
-    if (!selectedOffice || filteredRecordsForExport.length === 0) {
-      const msg = `ไม่พบข้อมูลสำหรับสำนักงาน "${selectedOffice || 'ที่เลือก'}"`;
-      if (onNotify) onNotify(msg);
-      return;
-    }
+    if (!selectedOffice) return;
 
-    const exportedCount = exportDatabaseToCSV(records, selectedOffice);
-    const successMsg = `ส่งออกไฟล์ CSV ฐานข้อมูล (${selectedOffice}) จำนวน ${exportedCount} แถวเรียบร้อยแล้ว`;
-    
-    if (onExportSuccess) {
-      onExportSuccess();
-    }
+    const exportedCount = exportDatabaseToCSV(cleanRecords, selectedOffice);
+    const successMsg = exportedCount > 0
+      ? `ส่งออกไฟล์ CSV ฐานข้อมูล (${selectedOffice}) จำนวน ${exportedCount} แถวเรียบร้อยแล้ว`
+      : `ส่งออกไฟล์ตารางฐานข้อมูล CSV (${selectedOffice}) เรียบร้อยแล้ว`;
 
     setExportSuccessMessage(successMsg);
     if (onNotify) onNotify(successMsg);
@@ -231,14 +240,10 @@ const book = String(r.receiptBook || '').trim();
                   onChange={(e) => setSelectedOffice(e.target.value)}
                   className="w-full pl-3.5 pr-8 py-2.5 text-xs font-semibold text-slate-800 bg-white border-2 border-emerald-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 shadow-xs cursor-pointer appearance-none transition"
                 >
-                  <option value="" disabled>
-                    -- กรุณาเลือกสำนักงานจัดหางาน --
-                  </option>
-                  
                   {activeOfficesInData.length > 0 && (
                     <optgroup label="── สำนักงานที่มีรายการในระบบ ──">
                       {activeOfficesInData.map((office) => {
-                        const count = records.filter(r => (r.employmentOffice || '').trim() === office).length;
+                        const count = cleanRecords.filter(r => (r.employmentOffice || '').trim() === office).length;
                         return (
                           <option key={`active-${office}`} value={office}>
                             ✓ {office} ({count} รายการ)
@@ -250,7 +255,7 @@ const book = String(r.receiptBook || '').trim();
 
                   <optgroup label="── สำนักงานจัดหางานกรุงเทพมหานคร ──">
                     {BANGKOK_EMPLOYMENT_OFFICES.map((office) => {
-                      const count = records.filter(r => (r.employmentOffice || '').trim() === office).length;
+                      const count = cleanRecords.filter(r => (r.employmentOffice || '').trim() === office).length;
                       return (
                         <option key={office} value={office}>
                           {office} {count > 0 ? `(${count} รายการ)` : ''}
@@ -261,7 +266,7 @@ const book = String(r.receiptBook || '').trim();
 
                   <optgroup label="── สำนักงานจัดหางานจังหวัด ──">
                     {PROVINCIAL_EMPLOYMENT_OFFICES.map((office) => {
-                      const count = records.filter(r => (r.employmentOffice || '').trim() === office).length;
+                      const count = cleanRecords.filter(r => (r.employmentOffice || '').trim() === office).length;
                       return (
                         <option key={office} value={office}>
                           {office} {count > 0 ? `(${count} รายการ)` : ''}
@@ -294,7 +299,7 @@ const book = String(r.receiptBook || '').trim();
               </button>
             </div>
 
-            {/* Export CSV Button (Always 1 row per worker) */}
+            {/* Export CSV Button (Always 1 row per worker & always clickable) */}
             <div className="sm:self-end">
               <label className="block text-[11px] font-bold text-emerald-900 mb-1 flex items-center gap-1">
                 <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
@@ -303,9 +308,8 @@ const book = String(r.receiptBook || '').trim();
               <button
                 type="button"
                 onClick={handleExportCSV}
-                disabled={!selectedOffice || filteredRecordsForExport.length === 0}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:bg-none disabled:bg-slate-300 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/30 transition cursor-pointer"
-                title={filteredRecordsForExport.length === 0 ? "ไม่มีข้อมูลสำหรับสำนักงานที่เลือก" : `คลิกเพื่อส่งออกข้อมูล ${selectedOffice}`}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 active:scale-95 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/30 transition cursor-pointer"
+                title={`คลิกเพื่อส่งออกข้อมูล ${selectedOffice}`}
               >
                 <Download className="w-4 h-4 text-white" />
                 <span>
