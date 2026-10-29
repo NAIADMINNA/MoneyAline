@@ -401,7 +401,7 @@ export const DepositForm: React.FC<DepositFormProps> = ({
     // ล็อคชื่อคนต่างด้าวเป็นภาษาอังกฤษตัวพิมพ์ใหญ่เท่านั้น (แปลงพิมพ์เล็กเป็นพิมพ์ใหญ่อัตโนมัติ)
     let cleanValue = value;
     if (field === 'name') {
-      cleanValue = value.toUpperCase().replace(/[^A-Z\s\.\-']/g, '');
+      cleanValue = value.toUpperCase().replace(/[^A-Z\s\.\-'@]/g, '');
     } else if (field === 'category') {
       // บังคับล็อคประเภทแรงงาน / มติ ให้เป็น 1 ใน 3 ตัวเลือกที่ตั้งไว้เสมอ
       cleanValue = normalizeAlienCategory(value);
@@ -1633,14 +1633,14 @@ export const DepositForm: React.FC<DepositFormProps> = ({
                             ชื่อ-นามสกุล คนต่างด้าว <span className="text-red-500">*</span>
                           </label>
                           <span className="text-[10px] text-indigo-700 font-semibold bg-indigo-50 border border-indigo-200/60 px-1.5 py-0.5 rounded">
-                            ภาษาอังกฤษพิมพ์ใหญ่ (A-Z)
+                            ภาษาอังกฤษพิมพ์ใหญ่ (A-Z, @)
                           </span>
                         </div>
                         <input
                           type="text"
                           value={worker.name}
                           onChange={(e) => {
-                            const upperVal = e.target.value.toUpperCase().replace(/[^A-Z\s\.\-']/g, '');
+                            const upperVal = e.target.value.toUpperCase().replace(/[^A-Z\s\.\-'@]/g, '');
                             handleWorkerChange(idx, 'name', upperVal);
                           }}
                           placeholder="ระบุตัวพิมพ์ใหญ่ เช่น AUNG SAN"
