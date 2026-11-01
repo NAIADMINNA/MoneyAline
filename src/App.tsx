@@ -21,6 +21,7 @@ import { DepositStats } from './components/DepositStats';
 import { GoogleSheetsBar } from './components/GoogleSheetsBar';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { WebhookPasswordModal } from './components/WebhookPasswordModal';
+import { RobotHelpWidget } from './components/RobotHelpWidget';
 import { initAuth, googleSignIn, logoutGoogle, getSavedAccessToken, getSavedUser } from './services/googleAuth';
 import { 
   appendRecordToSheet, 
@@ -752,7 +753,7 @@ export default function App() {
 
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#FFE500] text-black px-4 py-3 rounded-xl border-3 border-black shadow-[5px_5px_0px_0px_#000000] flex items-center gap-2.5 text-xs sm:text-sm font-extrabold animate-in slide-in-from-bottom duration-200">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#FFE500] text-black px-4 py-3 rounded-xl border-3 border-black shadow-[5px_5px_0px_0px_#000000] flex items-center gap-2.5 text-xs sm:text-sm font-extrabold animate-in slide-in-from-bottom duration-200 print:hidden">
           <CheckCircle className="w-5 h-5 text-black shrink-0 stroke-[2.5]" />
           <span>{toastMessage}</span>
         </div>
@@ -768,6 +769,9 @@ export default function App() {
 
       {/* Offline Indicator */}
       <OfflineIndicator />
+
+      {/* Robot Notification Mascot */}
+      <RobotHelpWidget onNotify={showToast} />
 
       {/* Webhook Admin Password Modal */}
       <WebhookPasswordModal
