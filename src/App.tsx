@@ -540,61 +540,57 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans relative selection:bg-blue-600 selection:text-white">
-      {/* Decorative ambient lighting in background */}
-      <div className="absolute top-0 inset-x-0 h-80 bg-gradient-to-b from-blue-100/60 via-indigo-50/30 to-transparent pointer-events-none -z-10" />
-      <div className="absolute top-20 right-10 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl pointer-events-none -z-10" />
-      <div className="absolute top-40 left-10 w-80 h-80 bg-indigo-400/10 rounded-full blur-3xl pointer-events-none -z-10" />
+    <div className="min-h-screen bg-transparent text-black flex flex-col font-sans relative selection:bg-[#FFE500] selection:text-black">
       
-      {/* Top Bar Contract (Single row, 3 zones) with rich government aesthetics */}
-      <header className="bg-white/95 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-30 shadow-xs">
-        <div className={`${layoutContainerClass} px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between gap-4`}>
+      {/* Top Bar Contract (Single row, 3 zones) with Neo-Brutalist Aesthetics */}
+      <header className="bg-white border-b-3 border-black sticky top-0 z-30 shadow-[0px_4px_0px_0px_#000000]">
+        <div className={`${layoutContainerClass} px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4`}>
           
           {/* Zone 1: Wordmark / Brand with Emblem */}
           <div className="flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-700 via-indigo-600 to-sky-500 text-white flex items-center justify-center font-bold shadow-md shadow-blue-600/25 ring-2 ring-blue-100">
-              <Building2 className="w-5 h-5 text-white" />
+            <div className="w-11 h-11 rounded-lg bg-[#FFE500] text-black flex items-center justify-center font-black border-2 border-black shadow-[3px_3px_0px_0px_#000000] shrink-0">
+              <Building2 className="w-6 h-6 text-black stroke-[2.5]" />
             </div>
             <div>
               <a 
                 href="#" 
                 onClick={(e) => { e.preventDefault(); setActiveTab('form'); }} 
-                className="text-base sm:text-lg font-extrabold tracking-tight text-slate-900 hover:text-blue-700 transition block leading-tight"
+                className="text-base sm:text-lg font-extrabold tracking-tight text-black hover:underline decoration-2 transition block leading-tight"
               >
                 ระบบบันทึกเงินหลักประกันคนต่างด้าว
               </a>
-              <div className="flex items-center gap-1.5 mt-0.5 text-[11px] font-medium text-slate-500">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <div className="flex items-center gap-1.5 mt-0.5 text-[11px] font-bold text-neutral-700">
+                <span className="w-2 h-2 bg-[#22C55E] border border-black" />
                 <span>กรมการจัดหางาน กระทรวงแรงงาน</span>
-                <span className="hidden md:inline text-slate-300">|</span>
-                <span className="hidden md:inline text-blue-700 font-semibold">ระบบงานวางหลักประกัน</span>
+                <span className="hidden md:inline text-black font-black">|</span>
+                <span className="hidden md:inline bg-[#BFDBFE] text-black px-1.5 py-0.2 border border-black font-extrabold">ระบบงานวางหลักประกัน</span>
               </div>
             </div>
           </div>
 
-          {/* Zone 2: Navigation Links / Tabs with Vibrant Segmented Look */}
-          <nav className="flex items-center p-1.5 bg-slate-100/90 rounded-2xl border border-slate-200/90 shadow-inner">
+          {/* Zone 2: Navigation Links / Tabs with Neo-Brutalist Segmented Look */}
+          <nav className="flex items-center gap-2 p-1.5 bg-[#F3F4F6] rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_#000000]">
             <button
               onClick={() => setActiveTab('form')}
-              className={`flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all duration-200 cursor-pointer ${
+              className={`flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-extrabold rounded-lg border-2 transition-all duration-150 cursor-pointer ${
                 activeTab === 'form'
-                  ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white shadow-md shadow-blue-600/30'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/70'
+                  ? 'bg-[#FFE500] text-black border-black shadow-[2px_2px_0px_0px_#000000] -translate-x-0.5 -translate-y-0.5'
+                  : 'bg-white text-neutral-800 border-transparent hover:border-black hover:bg-neutral-100 active:translate-x-[1px] active:translate-y-[1px]'
               }`}
             >
-              <FileEdit className={`w-4 h-4 ${activeTab === 'form' ? 'text-white' : 'text-blue-600'}`} />
+              <FileEdit className="w-4 h-4 text-black stroke-[2.5]" />
               <span>แบบฟอร์มบันทึก</span>
             </button>
 
             <button
               onClick={() => setActiveTab('stats')}
-              className={`flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all duration-200 cursor-pointer ${
+              className={`flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-extrabold rounded-lg border-2 transition-all duration-150 cursor-pointer ${
                 activeTab === 'stats'
-                  ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white shadow-md shadow-blue-600/30'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/70'
+                  ? 'bg-[#6EE7B7] text-black border-black shadow-[2px_2px_0px_0px_#000000] -translate-x-0.5 -translate-y-0.5'
+                  : 'bg-white text-neutral-800 border-transparent hover:border-black hover:bg-neutral-100 active:translate-x-[1px] active:translate-y-[1px]'
               }`}
             >
-              <BarChart3 className={`w-4 h-4 ${activeTab === 'stats' ? 'text-white' : 'text-indigo-600'}`} />
+              <BarChart3 className="w-4 h-4 text-black stroke-[2.5]" />
               <span>สถิติ & รายงาน</span>
             </button>
           </nav>
@@ -605,21 +601,21 @@ export default function App() {
             <button
               type="button"
               onClick={toggleFullWidth}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition shadow-2xs cursor-pointer active:scale-95 ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-black text-xs font-extrabold transition-all duration-150 cursor-pointer shadow-[3px_3px_0px_0px_#000000] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#000000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${
                 isFullWidth
-                  ? 'bg-blue-600 text-white border-blue-700 shadow-blue-600/25'
-                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
+                  ? 'bg-[#60A5FA] text-black'
+                  : 'bg-white hover:bg-[#FEF08A] text-black'
               }`}
               title={isFullWidth ? 'คลิกเพื่อสลับกลับเป็นมุมมองขนาดมาตรฐาน' : 'คลิกเพื่อขยายหน้าจอแสดงผลเต็มพื้นที่ 100%'}
             >
               {isFullWidth ? (
                 <>
-                  <Minimize2 className="w-3.5 h-3.5" />
+                  <Minimize2 className="w-3.5 h-3.5 stroke-[2.5]" />
                   <span className="hidden sm:inline">ย่อขนาด</span>
                 </>
               ) : (
                 <>
-                  <Maximize2 className="w-3.5 h-3.5 text-blue-600" />
+                  <Maximize2 className="w-3.5 h-3.5 text-black stroke-[2.5]" />
                   <span className="hidden sm:inline">ขยายเต็มจอ</span>
                 </>
               )}
@@ -634,16 +630,16 @@ export default function App() {
                   setShowPasswordModal(true);
                 }
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-purple-300 bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-bold transition shadow-2xs cursor-pointer active:scale-95"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-black bg-[#E9D5FF] hover:bg-[#D8B4FE] text-black text-xs font-extrabold transition-all duration-150 shadow-[3px_3px_0px_0px_#000000] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#000000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none cursor-pointer"
               title="เปิดหน้าต่างตั้งค่า จัดการ Webhook (ต้องใช้รหัสผ่าน)"
             >
-              <Settings2 className="w-3.5 h-3.5 text-purple-600" />
+              <Settings2 className="w-3.5 h-3.5 text-black stroke-[2.5]" />
               <span>จัดการ Webhook</span>
             </button>
 
-            <div className="hidden sm:flex items-center gap-2 text-xs bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/80 px-3.5 py-1.5 rounded-xl shadow-2xs">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 ring-4 ring-emerald-100" />
-              <span className="font-semibold text-blue-950">ปีงบประมาณ พ.ศ. ๒๕๖๙</span>
+            <div className="hidden sm:flex items-center gap-2 text-xs bg-[#FDE68A] border-2 border-black px-3.5 py-1.5 rounded-lg shadow-[3px_3px_0px_0px_#000000]">
+              <span className="w-2.5 h-2.5 bg-[#22C55E] border border-black" />
+              <span className="font-extrabold text-black">ปีงบประมาณ พ.ศ. ๒๕๖๙</span>
             </div>
           </div>
 
@@ -698,12 +694,12 @@ export default function App() {
 
         {activeTab === 'ledger' && (
           <div className="animate-in fade-in duration-200">
-            <div className={`${layoutContainerClass} mb-4 flex items-center justify-between`}>
+            <div className={`${layoutContainerClass} mb-4 flex items-center justify-between bg-[#FFE500] border-2 border-black p-4 rounded-xl shadow-[4px_4px_0px_0px_#000000]`}>
               <div>
-                <h2 className="text-xl font-bold text-slate-900">
+                <h2 className="text-xl font-black text-black">
                   ทะเบียนประวัติการวางหลักประกัน
                 </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs font-bold text-neutral-800 mt-0.5">
                   รายการคำขอและใบเสร็จรับเงินค่าวางหลักประกันทั้งหมดในระบบ
                 </p>
               </div>
@@ -720,12 +716,12 @@ export default function App() {
 
         {activeTab === 'stats' && (
           <div className="animate-in fade-in duration-200">
-            <div className={`${layoutContainerClass} mb-4 flex items-center justify-between`}>
+            <div className={`${layoutContainerClass} mb-5 flex items-center justify-between bg-[#FFE500] border-3 border-black p-4 sm:p-5 rounded-xl shadow-[5px_5px_0px_0px_#000000]`}>
               <div>
-                <h2 className="text-xl font-bold text-slate-900">
+                <h2 className="text-xl sm:text-2xl font-black text-black">
                   รายงานสรุปและสถิติภาพรวม
                 </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs font-bold text-neutral-800 mt-0.5">
                   ภาพรวมการจัดเก็บเงินหลักประกันคนต่างด้าวตามพระราชกำหนด
                 </p>
               </div>
@@ -756,8 +752,8 @@ export default function App() {
 
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-2.5 text-xs sm:text-sm animate-in slide-in-from-bottom duration-200 border border-slate-700">
-          <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+        <div className="fixed bottom-6 right-6 z-50 bg-[#FFE500] text-black px-4 py-3 rounded-xl border-3 border-black shadow-[5px_5px_0px_0px_#000000] flex items-center gap-2.5 text-xs sm:text-sm font-extrabold animate-in slide-in-from-bottom duration-200">
+          <CheckCircle className="w-5 h-5 text-black shrink-0 stroke-[2.5]" />
           <span>{toastMessage}</span>
         </div>
       )}
@@ -781,38 +777,38 @@ export default function App() {
       />
 
       {/* Footer with Counters on the Right Hand Side */}
-      <footer className="bg-white border-t border-slate-200/90 py-3.5 px-4 sm:px-6">
-        <div className={`${layoutContainerClass} flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-slate-500`}>
-          <div className="text-center md:text-left font-medium">
+      <footer className="bg-white border-t-3 border-black py-4 px-4 sm:px-6">
+        <div className={`${layoutContainerClass} flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-black`}>
+          <div className="text-center md:text-left font-extrabold">
             ระบบบันทึกการชำระเงินค่าวางหลักประกันแรงงานต่างด้าว · กรมการจัดหางาน กระทรวงแรงงาน
           </div>
 
-          {/* ด้านขวามือ: การนับจำนวนคนเข้าใช้งาน และ คนกดเลือกส่งออกไฟล์ และ ข้อมูลเวอร์ชัน */}
-          <div className="flex items-center gap-2.5 flex-wrap justify-center md:justify-end text-xs">
+          {/* ด้านขวามือ: การนับจำนวนคนเข้าใช้งาน และ คนกดเลือกส่งออกไฟล์ */}
+          <div className="flex items-center gap-3 flex-wrap justify-center md:justify-end text-xs">
             {/* 1. จำนวนคนเข้าใช้งานสะสม */}
             <div 
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50/80 border border-blue-200 text-blue-950 shadow-2xs hover:bg-blue-100/70 transition"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#BFDBFE] border-2 border-black text-black shadow-[3px_3px_0px_0px_#000000]"
               title="ยอดผู้เข้าใช้งานระบบสะสมทั้งหมด (นับสะสมต่อเนื่องถาวร ไม่มีการรีเซ็ตหรือลบข้อมูลในแต่ละวัน)"
             >
-              <Users className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-              <span className="text-slate-600 font-medium text-[11px]">ผู้เข้าใช้งานสะสม:</span>
-              <strong className="font-mono font-bold text-blue-700 bg-white px-1.5 py-0.5 rounded-md border border-blue-100 shadow-2xs">
+              <Users className="w-4 h-4 text-black shrink-0 stroke-[2.5]" />
+              <span className="text-black font-extrabold text-[11px]">ผู้เข้าใช้งานสะสม:</span>
+              <strong className="font-mono font-black text-black bg-white px-2 py-0.5 rounded border-2 border-black">
                 {visitorCount.toLocaleString('th-TH')}
               </strong>
-              <span className="text-slate-500 text-[11px]">คน</span>
+              <span className="text-black font-bold text-[11px]">คน</span>
             </div>
 
             {/* 2. คนกดเลือกส่งออกไฟล์สะสม */}
             <div 
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50/80 border border-emerald-200 text-emerald-950 shadow-2xs hover:bg-emerald-100/70 transition"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#6EE7B7] border-2 border-black text-black shadow-[3px_3px_0px_0px_#000000]"
               title="ยอดการกดส่งออกไฟล์สะสมทั้งหมด (นับสะสมต่อเนื่องถาวร ไม่มีการรีเซ็ตหรือลบข้อมูลในแต่ละวัน)"
             >
-              <Download className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-              <span className="text-slate-600 font-medium text-[11px]">ส่งออกไฟล์สะสม:</span>
-              <strong className="font-mono font-bold text-emerald-700 bg-white px-1.5 py-0.5 rounded-md border border-emerald-100 shadow-2xs">
+              <Download className="w-4 h-4 text-black shrink-0 stroke-[2.5]" />
+              <span className="text-black font-extrabold text-[11px]">ส่งออกไฟล์สะสม:</span>
+              <strong className="font-mono font-black text-black bg-white px-2 py-0.5 rounded border-2 border-black">
                 {exportClickCount.toLocaleString('th-TH')}
               </strong>
-              <span className="text-slate-500 text-[11px]">ครั้ง</span>
+              <span className="text-black font-bold text-[11px]">ครั้ง</span>
             </div>
           </div>
         </div>

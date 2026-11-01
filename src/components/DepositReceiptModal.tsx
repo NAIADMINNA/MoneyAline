@@ -17,14 +17,16 @@ export const DepositReceiptModal: React.FC<DepositReceiptModalProps> = ({ record
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 print:p-0 print:bg-white">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full border border-slate-200 overflow-hidden flex flex-col max-h-[92vh] print:max-h-none print:shadow-none print:border-none print:rounded-none">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 print:p-0 print:bg-white">
+      <div className="bg-white rounded-2xl shadow-[12px_12px_0px_0px_#000000] max-w-3xl w-full border-3 border-black overflow-hidden flex flex-col max-h-[92vh] print:max-h-none print:shadow-none print:border-none print:rounded-none">
         
         {/* Header toolbar (Hidden when printing) */}
-        <div className="px-6 py-4 bg-slate-800 text-white flex items-center justify-between print:hidden">
+        <div className="px-6 py-4 bg-[#FFE500] text-black border-b-3 border-black flex items-center justify-between print:hidden">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold tracking-wide flex items-center gap-1.5 text-blue-200">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <span className="text-sm font-black tracking-wide flex items-center gap-2 text-black">
+              <span className="w-6 h-6 rounded-md bg-[#6EE7B7] border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_0px_#000000]">
+                <CheckCircle2 className="w-4 h-4 text-black" />
+              </span>
               ตัวอย่างใบเสร็จรับเงินอย่างเป็นทางการ
             </span>
           </div>
@@ -32,14 +34,14 @@ export const DepositReceiptModal: React.FC<DepositReceiptModalProps> = ({ record
           <div className="flex items-center gap-2">
             <button
               onClick={handlePrint}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium rounded-lg transition shadow-xs cursor-pointer active:scale-95"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#60A5FA] hover:bg-[#3B82F6] border-2 border-black text-black text-xs font-black rounded-lg shadow-[3px_3px_0px_0px_#000000] hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all cursor-pointer"
             >
               <Printer className="w-4 h-4" />
               <span>พิมพ์ใบเสร็จ (Print)</span>
             </button>
             <button
               onClick={onClose}
-              className="p-2 text-slate-300 hover:text-white hover:bg-slate-700/60 rounded-lg transition cursor-pointer"
+              className="p-2 text-black bg-white hover:bg-[#FF6B6B] border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_#000000] transition cursor-pointer"
               title="ปิดหน้าต่าง"
             >
               <X className="w-5 h-5" />
@@ -297,21 +299,21 @@ export const DepositReceiptModal: React.FC<DepositReceiptModalProps> = ({ record
         </div>
 
         {/* Footer actions */}
-        <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between print:hidden">
-          <div className="text-xs text-slate-500">
+        <div className="px-6 py-4 bg-[#FFFDF7] border-t-3 border-black flex items-center justify-between print:hidden">
+          <div className="text-xs font-bold text-slate-800">
             เอกสารฉบับนี้พิมพ์จากระบบบันทึกการชำระเงินค่าวางหลักประกันแรงงานต่างด้าว
           </div>
 
           <div className="flex items-center gap-3">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-sm text-slate-600 hover:text-slate-900 font-medium rounded-lg hover:bg-slate-200/60 transition cursor-pointer"
+              className="px-4 py-2 text-sm text-black bg-white hover:bg-slate-100 border-2 border-black font-black rounded-lg shadow-[3px_3px_0px_0px_#000000] hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all cursor-pointer"
             >
               ปิด
             </button>
             <button
               onClick={handlePrint}
-              className="inline-flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg shadow-sm transition cursor-pointer"
+              className="inline-flex items-center gap-2 px-5 py-2 bg-[#FFE500] hover:bg-[#facc15] border-2 border-black text-black text-sm font-black rounded-lg shadow-[4px_4px_0px_0px_#000000] hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all cursor-pointer"
             >
               <Printer className="w-4 h-4" />
               <span>สั่งพิมพ์เอกสาร</span>

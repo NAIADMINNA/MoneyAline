@@ -390,47 +390,47 @@ function doPost(e) {
   return (
     <div className="w-full max-w-[1600px] 2xl:max-w-[1720px] mx-auto px-4 sm:px-6 transition-all duration-300">
       {isAdminUnlocked && (
-        <div className="bg-white rounded-xl border border-emerald-200/90 shadow-xs p-3.5 sm:p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3.5 mb-6 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="bg-white rounded-xl border-2 border-black shadow-[6px_6px_0px_0px_#000000] p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3.5 mb-6 animate-in fade-in slide-in-from-top-2 duration-200">
         
         {/* Left: Google Sheets connection info */}
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center shrink-0 shadow-2xs">
-            <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
+          <div className="w-11 h-11 rounded-lg bg-[#6EE7B7] text-black border-2 border-black flex items-center justify-center shrink-0 shadow-[3px_3px_0px_0px_#000000]">
+            <FileSpreadsheet className="w-5 h-5 text-black" />
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+              <h3 className="text-sm font-black text-black flex items-center gap-1.5">
                 Google Sheets Integration
               </h3>
               {webhookUrl ? (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300/60 shadow-2xs">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-black bg-[#6EE7B7] text-black border-2 border-black shadow-[2px_2px_0px_0px_#000000]">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-black" />
                   เชื่อมต่อสเปรดชีตถาวร (บันทึกอัตโนมัติ ไม่ต้องกดเชื่อมต่อ)
                 </span>
               ) : accessToken ? (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300/60 shadow-2xs">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-black bg-[#6EE7B7] text-black border-2 border-black shadow-[2px_2px_0px_0px_#000000]">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-black" />
                   ล็อคการเชื่อมต่อถาวร (Auto-Sync ตลอดเวลา)
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200">
-                  <AlertCircle className="w-3 h-3 text-amber-500" />
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-black bg-[#FFE500] text-black border-2 border-black shadow-[2px_2px_0px_0px_#000000]">
+                  <AlertCircle className="w-3 h-3 text-black" />
                   รอการเชื่อมต่อ (กด 1 ครั้งเพื่อล็อคถาวร)
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5 flex-wrap">
-              <span>ID: <code className="font-mono text-[11px] bg-slate-100 px-1 py-0.5 rounded text-slate-700">{SPREADSHEET_ID.substring(0, 14)}...</code></span>
+            <div className="flex items-center gap-2 text-xs text-slate-800 font-bold mt-1 flex-wrap">
+              <span>ID: <code className="font-mono text-[11px] bg-[#FFE500] px-1.5 py-0.5 rounded border border-black text-black font-black">{SPREADSHEET_ID.substring(0, 14)}...</code></span>
               <span>•</span>
-              <span className="text-slate-600">คอลัมน์แรก = ลำดับที่ (รันอัตโนมัติ)</span>
+              <span className="text-slate-700">คอลัมน์แรก = ลำดับที่ (รันอัตโนมัติ)</span>
               <span>•</span>
-              <span className="text-slate-600">คอลัมน์สุดท้าย = Timestamp</span>
+              <span className="text-slate-700">คอลัมน์สุดท้าย = Timestamp</span>
               <span>•</span>
               <a
                 href={sheetUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-emerald-700 hover:text-emerald-800 font-semibold underline underline-offset-2 hover:opacity-80 transition"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#BFDBFE] border border-black text-black font-black hover:bg-[#93C5FD] transition"
               >
                 เปิดดูสเปรดชีต
                 <ExternalLink className="w-3 h-3" />
@@ -447,7 +447,7 @@ function doPost(e) {
               type="button"
               onClick={() => setShowConfirmSync(true)}
               disabled={isSyncing}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-semibold shadow-xs transition disabled:opacity-50 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#6EE7B7] hover:bg-[#34D399] border-2 border-black text-black text-xs font-black shadow-[3px_3px_0px_0px_#000000] hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all disabled:opacity-50 cursor-pointer"
               title="ส่งข้อมูลคำขอทั้งหมดที่มีในระบบลง Google Sheet"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
@@ -459,10 +459,10 @@ function doPost(e) {
           <button
             type="button"
             onClick={() => setShowWebhookModal(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-purple-200 hover:bg-purple-50 text-purple-700 text-xs font-semibold shadow-2xs transition cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-black bg-[#E9D5FF] hover:bg-[#D8B4FE] text-black text-xs font-black shadow-[3px_3px_0px_0px_#000000] hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all cursor-pointer"
             title="ตั้งค่าให้ผู้ใช้งานทุกคนบันทึกเข้า Google Sheet ได้ทันทีโดยไม่ต้องกดเชื่อมต่อ Google"
           >
-            <Settings2 className="w-3.5 h-3.5 text-purple-600" />
+            <Settings2 className="w-3.5 h-3.5 text-black" />
             <span>{webhookUrl ? 'จัดการ Webhook' : 'ให้ทุกคนบันทึกได้ไม่ต้องล็อกอิน'}</span>
           </button>
 
@@ -473,10 +473,10 @@ function doPost(e) {
                 type="button"
                 onClick={handleUpdateHeaders}
                 disabled={isUpdatingHeaders}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold shadow-2xs transition disabled:opacity-50 cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-black bg-[#BFDBFE] hover:bg-[#93C5FD] text-black text-xs font-black shadow-[3px_3px_0px_0px_#000000] hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all disabled:opacity-50 cursor-pointer"
                 title="รีเซ็ต/อัปเดตหัวตารางแถวที่ 1 ใน Google Sheet ให้มี 'ประเภทนายจ้าง' และลบ 'ช่องทางการชำระเงิน' / 'ที่ตั้งสถานที่ทำงาน' ออกทันที"
               >
-                <RefreshCw className={`w-3.5 h-3.5 text-blue-600 ${isUpdatingHeaders ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-3.5 h-3.5 text-black ${isUpdatingHeaders ? 'animate-spin' : ''}`} />
                 <span>{isUpdatingHeaders ? 'กำลังอัปเดตหัวตาราง...' : 'อัปเดตหัวตาราง Sheet'}</span>
               </button>
 
@@ -485,19 +485,19 @@ function doPost(e) {
                 type="button"
                 onClick={handlePullRecords}
                 disabled={isPulling}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium shadow-2xs transition disabled:opacity-50 cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-black bg-white hover:bg-[#FFE500] text-black text-xs font-black shadow-[3px_3px_0px_0px_#000000] hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all disabled:opacity-50 cursor-pointer"
                 title="ดึงข้อมูลคำขอที่ผู้อื่นบันทึกไว้ใน Google Sheet มาแสดงบนเครื่องนี้"
               >
-                <Download className={`w-3.5 h-3.5 text-slate-500 ${isPulling ? 'animate-bounce' : ''}`} />
+                <Download className={`w-3.5 h-3.5 text-black ${isPulling ? 'animate-bounce' : ''}`} />
                 <span>{isPulling ? 'กำลังดึงข้อมูล...' : 'ดึงข้อมูลจาก Sheet'}</span>
               </button>
 
               {/* User display badge */}
-              <div className="hidden lg:flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1.5 rounded-lg text-xs font-medium">
+              <div className="hidden lg:flex items-center gap-1.5 bg-[#FFFDF7] border-2 border-black text-black px-2.5 py-1.5 rounded-lg text-xs font-black shadow-[2px_2px_0px_0px_#000000]">
                 {user?.photoURL ? (
-                  <img src={user.photoURL} alt="" className="w-4 h-4 rounded-full" />
+                  <img src={user.photoURL} alt="" className="w-4 h-4 rounded-full border border-black" />
                 ) : (
-                  <UserCheck className="w-3.5 h-3.5 text-slate-500" />
+                  <UserCheck className="w-3.5 h-3.5 text-black" />
                 )}
                 <span className="max-w-[120px] truncate">{user?.displayName || user?.email || 'บัญชี Google'}</span>
               </div>
@@ -506,7 +506,7 @@ function doPost(e) {
               <button
                 type="button"
                 onClick={onLogout}
-                className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition cursor-pointer"
+                className="p-1.5 rounded-lg border-2 border-black bg-white text-black hover:bg-[#FECACA] shadow-[2px_2px_0px_0px_#000000] transition cursor-pointer"
                 title="ตัดการเชื่อมต่อ Google"
               >
                 <LogOut className="w-3.5 h-3.5" />
@@ -521,10 +521,10 @@ function doPost(e) {
                   await onLogin();
                 }}
                 disabled={isPulling}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-300 bg-blue-50/70 hover:bg-blue-100 text-blue-800 text-xs font-semibold shadow-2xs transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-black bg-[#BFDBFE] hover:bg-[#93C5FD] text-black text-xs font-black shadow-[3px_3px_0px_0px_#000000] hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all cursor-pointer"
                 title="ดึงข้อมูลคำขอจาก Google Sheet มาอัปเดตบนเครื่องนี้"
               >
-                <Download className="w-3.5 h-3.5 text-blue-600" />
+                <Download className="w-3.5 h-3.5 text-black" />
                 <span>ดึงข้อมูลจาก Sheet</span>
               </button>
 
@@ -532,7 +532,7 @@ function doPost(e) {
               <button
                 type="button"
                 onClick={onLogin}
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 active:bg-slate-100 text-slate-700 text-xs font-semibold shadow-xs transition cursor-pointer"
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border-2 border-black hover:bg-[#FFE500] text-black text-xs font-black shadow-[3px_3px_0px_0px_#000000] hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all cursor-pointer"
               >
                 <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 48 48">
                   <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
@@ -551,10 +551,10 @@ function doPost(e) {
             <button
               type="button"
               onClick={onLockAdmin}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-800 text-xs font-semibold shadow-2xs transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border-2 border-black bg-[#FFFDF7] hover:bg-[#FECACA] text-black text-xs font-black shadow-[2px_2px_0px_0px_#000000] transition cursor-pointer"
               title="ซ่อนหัวข้อการเชื่อมต่อนี้ (ต้องระบุรหัสผ่านใหม่อีกครั้งเมื่อต้องการเปิด)"
             >
-              <EyeOff className="w-3.5 h-3.5 text-slate-500" />
+              <EyeOff className="w-3.5 h-3.5 text-black" />
               <span>ซ่อนหัวข้อนี้</span>
             </button>
           )}
@@ -565,99 +565,101 @@ function doPost(e) {
 
       {/* Webhook Configuration Modal */}
       {showWebhookModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
-              <div className="flex items-center gap-2 text-purple-700 font-bold text-base">
-                <Globe className="w-5 h-5 text-purple-600" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-[#FFFDF7] rounded-2xl max-w-2xl w-full p-6 shadow-[10px_10px_0px_0px_#000000] border-3 border-black max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b-2 border-black">
+              <div className="flex items-center gap-2 text-black font-black text-base">
+                <div className="w-8 h-8 rounded-lg bg-[#E9D5FF] border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_0px_#000000]">
+                  <Globe className="w-4 h-4 text-black" />
+                </div>
                 <span>ตั้งค่าให้ผู้ใช้ทุกคนบันทึกได้ทันที โดยไม่ต้องล็อกอิน Google</span>
               </div>
               <button
                 type="button"
                 onClick={() => setShowWebhookModal(false)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+                className="text-black bg-white hover:bg-[#FF6B6B] border-2 border-black p-1 rounded-lg shadow-[2px_2px_0px_0px_#000000] transition cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Auto-Sync 20s Status inside Webhook Management */}
-            <div className="mt-4 bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border border-emerald-200 rounded-xl p-3 flex flex-wrap items-center justify-between gap-3 shadow-2xs">
+            <div className="mt-4 bg-[#D1FAE5] border-2 border-black rounded-xl p-3 flex flex-wrap items-center justify-between gap-3 shadow-[4px_4px_0px_0px_#000000]">
               <div className="flex items-center gap-2.5">
-                <span className="relative flex h-2.5 w-2.5">
-                  <span className={`animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 ${isAutoSyncing ? 'duration-500' : 'duration-1000'}`}></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-600"></span>
+                <span className="relative flex h-3 w-3">
+                  <span className={`animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75 ${isAutoSyncing ? 'duration-500' : 'duration-1000'}`}></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-700 border border-black"></span>
                 </span>
                 <div>
-                  <div className="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
+                  <div className="text-xs font-black text-black flex items-center gap-1.5">
                     <span>ระบบตรวจสอบอัตโนมัติ (AUTO-SYNC)</span>
-                    <span className="text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-full font-mono font-semibold">
+                    <span className="text-[10px] bg-[#FFE500] text-black border border-black px-2 py-0.5 rounded font-mono font-black">
                       ทุก 20 วินาที
                     </span>
                   </div>
-                  <div className="text-[11px] text-emerald-700 mt-0.5">
+                  <div className="text-[11px] text-slate-900 font-bold mt-0.5">
                     ระบบดึงข้อมูลและรายงานผลล่าสุดจาก Google Sheet อัตโนมัติทุก 20 วินาที
                   </div>
                 </div>
               </div>
-              <div className="text-right text-[11px] font-mono text-emerald-800">
-                <div>รอบถัดไปใน: <strong className="text-emerald-950 font-bold">{syncCountdown} วิ</strong></div>
-                {lastSyncTime && <div className="text-[10px] text-emerald-600 font-mono">อัปเดตล่าสุด {lastSyncTime} น.</div>}
+              <div className="text-right text-[11px] font-mono text-black font-bold">
+                <div>รอบถัดไปใน: <strong className="text-black font-black bg-white px-1.5 py-0.5 rounded border border-black">{syncCountdown} วิ</strong></div>
+                {lastSyncTime && <div className="text-[10px] text-slate-800 font-mono mt-0.5">อัปเดตล่าสุด {lastSyncTime} น.</div>}
               </div>
             </div>
 
-            <div className="mt-4 space-y-4 text-xs text-slate-600">
-              <p className="text-slate-700 leading-relaxed">
-                ตามระบบมาตรฐานของ Google หากใช้ Google OAuth แต่ละคนจะต้องล็อกอินบัญชี Google ของตนเอง <strong className="text-purple-700 font-bold">แต่ถ้าต้องการให้เป็น Web App สาธารณะที่เจ้าหน้าที่ทุกคนเปิดเข้ามาแล้วกรอกข้อมูลส่งเข้า Google Sheet ได้ทันที 100% โดยไม่ต้องล็อกอิน</strong> สามารถเปิดใช้งานผ่าน <strong>Google Apps Script Webhook</strong> ตาม 4 ขั้นตอนนี้ครับ:
+            <div className="mt-4 space-y-4 text-xs text-slate-900">
+              <p className="text-slate-900 font-medium leading-relaxed">
+                ตามระบบมาตรฐานของ Google หากใช้ Google OAuth แต่ละคนจะต้องล็อกอินบัญชี Google ของตนเอง <strong className="bg-[#FFE500] px-1 border border-black text-black font-black">แต่ถ้าต้องการให้เป็น Web App สาธารณะที่เจ้าหน้าที่ทุกคนเปิดเข้ามาแล้วกรอกข้อมูลส่งเข้า Google Sheet ได้ทันที 100% โดยไม่ต้องล็อกอิน</strong> สามารถเปิดใช้งานผ่าน <strong>Google Apps Script Webhook</strong> ตาม 4 ขั้นตอนนี้ครับ:
               </p>
 
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3.5">
+              <div className="bg-white p-4 rounded-xl border-2 border-black shadow-[4px_4px_0px_0px_#000000] space-y-3.5">
                 <div className="flex items-start gap-2.5">
-                  <span className="w-5 h-5 rounded-full bg-purple-600 text-white font-bold flex items-center justify-center text-[11px] shrink-0 mt-0.5">1</span>
+                  <span className="w-6 h-6 rounded-md bg-[#E9D5FF] border-2 border-black text-black font-black flex items-center justify-center text-[11px] shrink-0 mt-0.5 shadow-[1px_1px_0px_0px_#000000]">1</span>
                   <div>
-                    <span className="font-semibold text-slate-800">เปิด Google Sheet:</span> ไปที่เมนู <span className="font-semibold text-purple-700">ส่วนขยาย (Extensions)</span> &gt; <span className="font-semibold text-purple-700">Apps Script</span>
+                    <span className="font-black text-black">เปิด Google Sheet:</span> ไปที่เมนู <span className="font-black underline">ส่วนขยาย (Extensions)</span> &gt; <span className="font-black underline">Apps Script</span>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-2.5">
-                  <span className="w-5 h-5 rounded-full bg-purple-600 text-white font-bold flex items-center justify-center text-[11px] shrink-0 mt-0.5">2</span>
+                  <span className="w-6 h-6 rounded-md bg-[#E9D5FF] border-2 border-black text-black font-black flex items-center justify-center text-[11px] shrink-0 mt-0.5 shadow-[1px_1px_0px_0px_#000000]">2</span>
                   <div className="w-full">
                     <div className="flex items-center justify-between mb-1.5">
-                      <span className="font-semibold text-slate-800">ลบโค้ดเดิม แล้วนำโค้ดนี้ไปวาง:</span>
+                      <span className="font-black text-black">ลบโค้ดเดิม แล้วนำโค้ดนี้ไปวาง:</span>
                       <button
                         type="button"
                         onClick={handleCopyCode}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-purple-600 hover:bg-purple-700 text-white text-[11px] font-semibold transition cursor-pointer shadow-2xs"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[#FFE500] hover:bg-[#facc15] border-2 border-black text-black text-[11px] font-black transition cursor-pointer shadow-[2px_2px_0px_0px_#000000]"
                       >
                         {copiedCode ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                         <span>{copiedCode ? 'คัดลอกแล้ว!' : 'คัดลอกโค้ด'}</span>
                       </button>
                     </div>
-                    <pre className="bg-slate-900 text-purple-200 p-3 rounded-lg text-[11px] overflow-x-auto font-mono max-h-36 border border-slate-800">
+                    <pre className="bg-slate-900 text-[#FFE500] p-3 rounded-lg text-[11px] overflow-x-auto font-mono max-h-36 border-2 border-black">
                       {appsScriptSnippet}
                     </pre>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-2.5">
-                  <span className="w-5 h-5 rounded-full bg-purple-600 text-white font-bold flex items-center justify-center text-[11px] shrink-0 mt-0.5">3</span>
+                  <span className="w-6 h-6 rounded-md bg-[#E9D5FF] border-2 border-black text-black font-black flex items-center justify-center text-[11px] shrink-0 mt-0.5 shadow-[1px_1px_0px_0px_#000000]">3</span>
                   <div>
-                    <span className="font-semibold text-slate-800">กด Deploy (ทำให้ใช้งานได้):</span>
-                    <div className="mt-1 space-y-2 text-slate-600">
-                      <div className="p-2.5 rounded-lg bg-purple-50/80 border border-purple-200 text-[11px] space-y-1">
-                        <strong className="text-purple-900 block font-bold">กรณีเคยเชื่อมต่อไว้แล้ว (ต้องการอัปเดตให้แยกแถวละ 1 คน):</strong>
-                        <ol className="list-decimal pl-4 space-y-0.5 text-slate-700">
+                    <span className="font-black text-black">กด Deploy (ทำให้ใช้งานได้):</span>
+                    <div className="mt-1 space-y-2 text-slate-800">
+                      <div className="p-2.5 rounded-lg bg-[#F3E8FF] border-2 border-black text-[11px] space-y-1">
+                        <strong className="text-black block font-black">กรณีเคยเชื่อมต่อไว้แล้ว (ต้องการอัปเดตให้แยกแถวละ 1 คน):</strong>
+                        <ol className="list-decimal pl-4 space-y-0.5 text-slate-900 font-medium">
                           <li>กดปุ่มสีน้ำเงิน <strong>ทำให้ใช้งานได้ (Deploy)</strong> &gt; <strong>การจัดการการทำให้ใช้งานได้ (Manage deployments)</strong></li>
                           <li>กดที่รูป <strong>ดินสอ (แก้ไข / Edit)</strong> ที่แถบการ Deploy ปัจจุบัน</li>
                           <li>ในช่อง <strong>เวอร์ชัน (Version)</strong> คลิกเลือก <strong>"เวอร์ชันใหม่" (New version)</strong></li>
                           <li>กดปุ่ม <strong>ทำให้ใช้งานได้ (Deploy)</strong> ด้านล่างขวา</li>
                         </ol>
-                        <span className="text-[10px] text-purple-800 block font-semibold mt-1">
+                        <span className="text-[10px] text-black block font-black mt-1">
                           *(หากไม่เลือก "เวอร์ชันใหม่" Google จะยังคงรันโค้ดเก่า ทำให้ข้อมูลคนที่ 2 ซ้อนในแถวเดียวกัน)*
                         </span>
                       </div>
 
-                      <div className="text-[11px] text-slate-600">
+                      <div className="text-[11px] text-slate-800 font-medium">
                         <strong>กรณีสร้าง Webhook ครั้งแรก:</strong> กด Deploy &gt; การทำให้ใช้งานได้ใหม่ (New deployment) &gt; เลือก เว็บแอป (Web app) &gt; ผู้ที่มีสิทธิ์เข้าถึง: <strong>ทุกคน (Anyone)</strong>
                       </div>
                     </div>
@@ -665,27 +667,27 @@ function doPost(e) {
                 </div>
 
                 <div className="flex items-start gap-2.5">
-                  <span className="w-5 h-5 rounded-full bg-purple-600 text-white font-bold flex items-center justify-center text-[11px] shrink-0 mt-0.5">4</span>
+                  <span className="w-6 h-6 rounded-md bg-[#E9D5FF] border-2 border-black text-black font-black flex items-center justify-center text-[11px] shrink-0 mt-0.5 shadow-[1px_1px_0px_0px_#000000]">4</span>
                   <div className="w-full">
-                    <span className="font-semibold text-slate-800">นำ URL เว็บแอป (ที่ลงท้ายด้วย /exec) มาวางที่นี่:</span>
+                    <span className="font-black text-black">นำ URL เว็บแอป (ที่ลงท้ายด้วย /exec) มาวางที่นี่:</span>
                     <input
                       type="url"
                       value={inputUrl}
                       onChange={(e) => setInputUrl(e.target.value)}
                       placeholder="https://script.google.com/macros/s/AKfycb.../exec"
-                      className="mt-1.5 w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-mono text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-purple-500"
+                      className="mt-1.5 w-full px-3 py-2 bg-white border-2 border-black rounded-lg text-xs font-mono font-bold text-black focus:outline-hidden focus:bg-[#FFFDF7] shadow-[2px_2px_0px_0px_#000000]"
                     />
 
                     {/* ปุ่มทดสอบส่งแรงงาน 2 คนเพื่อยืนยันระบบ */}
-                    <div className="mt-2.5 pt-2 border-t border-slate-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                      <div className="text-[11px] text-slate-600">
-                        <span className="font-semibold text-purple-900">ทดสอบระบบ:</span> ส่งข้อมูลจำลองแรงงาน 2 คนเพื่อดูผลลัพธ์บน Google Sheet ทันที
+                    <div className="mt-2.5 pt-2 border-t-2 border-black flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                      <div className="text-[11px] text-slate-800 font-bold">
+                        <span className="font-black text-black">ทดสอบระบบ:</span> ส่งข้อมูลจำลองแรงงาน 2 คนเพื่อดูผลลัพธ์บน Google Sheet ทันที
                       </div>
                       <button
                         type="button"
                         onClick={handleTestTwoWorkersWebhook}
                         disabled={isTestingWebhook || (!inputUrl.trim() && !webhookUrl)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-purple-300 bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-bold shadow-2xs transition disabled:opacity-40 cursor-pointer shrink-0"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-black bg-[#E9D5FF] hover:bg-[#D8B4FE] text-black text-xs font-black shadow-[2px_2px_0px_0px_#000000] transition disabled:opacity-40 cursor-pointer shrink-0"
                         title="ส่งข้อมูลแรงงานทดสอบ 2 คนไปยัง Webhook ทันที เพื่อตรวจดูแถวข้อมูลบน Google Sheet"
                       >
                         <RefreshCw className={`w-3.5 h-3.5 ${isTestingWebhook ? 'animate-spin' : ''}`} />
@@ -697,25 +699,25 @@ function doPost(e) {
               </div>
 
               {/* กำหนดสิทธิ์รูปแบบเลขที่คำขอ: ขึ้นต้นแบบไหน และจำนวนกี่หลัก */}
-              <div className="bg-amber-50/70 border border-amber-200/90 rounded-xl p-3.5 space-y-3 shadow-2xs">
+              <div className="bg-[#FEF3C7] border-2 border-black rounded-xl p-3.5 space-y-3 shadow-[4px_4px_0px_0px_#000000]">
                 <div className="flex items-center justify-between">
-                  <div className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
-                    <Hash className="w-4 h-4 text-amber-600 shrink-0" />
+                  <div className="text-xs font-black text-black flex items-center gap-1.5">
+                    <Hash className="w-4 h-4 text-black shrink-0" />
                     <span>กำหนดสิทธิ์รูปแบบเลขที่คำขอ (Request Number Settings)</span>
                   </div>
-                  <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
+                  <span className="text-[10px] font-black text-black bg-[#FFE500] px-2 py-0.5 rounded border-2 border-black">
                     {inputEnabled ? 'เปิดการบังคับตรวจสอบ' : 'ปิดการบังคับตรวจ'}
                   </span>
                 </div>
 
-                <div className="text-[11px] text-amber-900 leading-relaxed">
+                <div className="text-[11px] text-black font-bold leading-relaxed">
                   กำหนดตัวเลขคำขอว่าต้องขึ้นต้นด้วยรูปแบบใด และเป็นตัวเลขจำนวนกี่หลัก เพื่อป้องกันเจ้าหน้าที่คีย์ข้อมูลผิดพลาด
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                   {/* ตัวเลขคำขอขึ้นต้น */}
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                    <label className="block text-[11px] font-black text-black mb-1">
                       ตัวเลขคำขอต้องขึ้นต้นด้วย (Prefix):
                     </label>
                     <input
@@ -723,16 +725,16 @@ function doPost(e) {
                       value={inputPrefix}
                       onChange={(e) => setInputPrefix(e.target.value.replace(/\D/g, ''))}
                       placeholder="เช่น 691"
-                      className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-mono font-bold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-amber-500"
+                      className="w-full px-3 py-1.5 bg-white border-2 border-black rounded-lg text-xs font-mono font-black text-black focus:outline-hidden shadow-[2px_2px_0px_0px_#000000]"
                     />
-                    <span className="text-[10px] text-slate-500 mt-0.5 block">
+                    <span className="text-[10px] text-slate-800 font-bold mt-1 block">
                       ค่าเริ่มต้นคือ <strong>691</strong> (ระบุเฉพาะตัวเลข)
                     </span>
                   </div>
 
                   {/* จำนวนหลักทั้งหมด */}
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                    <label className="block text-[11px] font-black text-black mb-1">
                       จำนวนหลักทั้งหมด (Total Digits):
                     </label>
                     <input
@@ -742,37 +744,37 @@ function doPost(e) {
                       value={inputLength}
                       onChange={(e) => setInputLength(Number(e.target.value) || '')}
                       placeholder="เช่น 14"
-                      className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-mono font-bold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-amber-500"
+                      className="w-full px-3 py-1.5 bg-white border-2 border-black rounded-lg text-xs font-mono font-black text-black focus:outline-hidden shadow-[2px_2px_0px_0px_#000000]"
                     />
-                    <span className="text-[10px] text-slate-500 mt-0.5 block">
+                    <span className="text-[10px] text-slate-800 font-bold mt-1 block">
                       ค่าเริ่มต้นคือ <strong>14</strong> หลัก
                     </span>
                   </div>
                 </div>
 
                 {/* แถบตัวอย่าง Preview & Action */}
-                <div className="bg-white/95 border border-amber-200 rounded-lg p-2.5 flex items-center justify-between flex-wrap gap-2 text-xs">
+                <div className="bg-white border-2 border-black rounded-lg p-2.5 flex items-center justify-between flex-wrap gap-2 text-xs">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[11px] text-slate-600 font-medium">ตัวอย่างเลขคำขอ:</span>
-                    <span className="font-mono font-bold px-2 py-0.5 rounded text-[13px] bg-[#efe321] text-[#d71b0c] border border-amber-300 shadow-2xs">
+                    <span className="text-[11px] text-black font-black">ตัวอย่างเลขคำขอ:</span>
+                    <span className="font-mono font-black px-2 py-0.5 rounded text-[13px] bg-[#FFE500] text-[#d71b0c] border-2 border-black shadow-[2px_2px_0px_0px_#000000]">
                       {generateSampleRequestNumber({
                         prefix: inputPrefix || '691',
                         length: Number(inputLength) || 14,
                         enabled: inputEnabled,
                       })}
                     </span>
-                    <span className="text-[11px] text-slate-600 font-mono">
+                    <span className="text-[11px] text-black font-mono font-bold">
                       ({Number(inputLength) || 14} หลัก)
                     </span>
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <label className="inline-flex items-center gap-1.5 text-[11px] text-slate-700 font-medium cursor-pointer">
+                    <label className="inline-flex items-center gap-1.5 text-[11px] text-black font-black cursor-pointer">
                       <input
                         type="checkbox"
                         checked={inputEnabled}
                         onChange={(e) => setInputEnabled(e.target.checked)}
-                        className="rounded border-slate-300 text-amber-600 focus:ring-amber-500"
+                        className="rounded border-2 border-black text-black focus:ring-0"
                       />
                       <span>บังคับตรวจ</span>
                     </label>
@@ -780,7 +782,7 @@ function doPost(e) {
                     <button
                       type="button"
                       onClick={handleResetReqConfig}
-                      className="text-[11px] text-amber-800 hover:text-amber-950 font-medium underline cursor-pointer"
+                      className="text-[11px] text-black hover:underline font-black cursor-pointer"
                       title="คืนค่าเป็นขึ้นต้น 691 จำนวน 14 หลัก"
                     >
                       คืนค่าเริ่มต้น (691/14)
@@ -790,62 +792,62 @@ function doPost(e) {
               </div>
 
               {/* รูปแบบการจัดเก็บข้อมูล: 1 แถวต่อแรงงาน 1 คน (เปิดใช้งานถาวร ไม่ต้องเลือก) */}
-              <div className="bg-indigo-50/70 border border-indigo-200/90 rounded-xl p-3.5 space-y-2.5 shadow-2xs">
+              <div className="bg-[#E0E7FF] border-2 border-black rounded-xl p-3.5 space-y-2.5 shadow-[4px_4px_0px_0px_#000000]">
                 <div className="flex items-center justify-between">
-                  <div className="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <div className="text-xs font-black text-black flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-black shrink-0" />
                     <span>ระบบจัดเก็บข้อมูลแบบ: 1 แถวต่อแรงงาน 1 คน (Row-by-Row)</span>
                   </div>
-                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-300">
+                  <span className="text-[10px] font-black text-black bg-[#6EE7B7] px-2.5 py-0.5 rounded border-2 border-black">
                     เปิดใช้งานถาวร
                   </span>
                 </div>
-                <div className="text-[11px] text-slate-600 leading-relaxed">
+                <div className="text-[11px] text-slate-900 font-medium leading-relaxed">
                   เมื่อนายจ้าง 1 รายมีแรงงานหลายคน ระบบจะบันทึกและส่งออกแยกเป็นแถวละ 1 คนอัตโนมัติ 100% ข้อมูลไม่ซ้อนกันในเซลล์ เพื่อให้กรอง ค้นหา และคำนวณสูตร SUM ใน Excel/Google Sheet ได้อย่างถูกต้องแม่นยำ
                 </div>
 
                 {/* ปุ่มแปลงข้อมูลเดิมใน Google Sheet */}
-                <div className="pt-2.5 border-t border-indigo-200/60 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
-                  <div className="text-[11px] text-indigo-900 leading-snug">
-                    <strong className="font-semibold text-indigo-950">ข้อมูลเดิมใน Google Sheet:</strong> หากมีแถวเก่าที่ข้อมูลแรงงานยังซ้อนกันอยู่ สามารถกดปุ่มนี้เพื่อแปลงให้แยกเป็น 1 แถวต่อคนได้ทันที
+                <div className="pt-2.5 border-t-2 border-black flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                  <div className="text-[11px] text-black font-bold leading-snug">
+                    <strong className="font-black text-black">ข้อมูลเดิมใน Google Sheet:</strong> หากมีแถวเก่าที่ข้อมูลแรงงานยังซ้อนกันอยู่ สามารถกดปุ่มนี้เพื่อแปลงให้แยกเป็น 1 แถวต่อคนได้ทันที
                   </div>
                   <button
                     type="button"
                     onClick={handleRestructureSheet}
                     disabled={isRestructuring}
-                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer shrink-0 disabled:opacity-50"
+                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-[#A78BFA] hover:bg-[#8B5CF6] text-black border-2 border-black text-xs font-black rounded-xl shadow-[3px_3px_0px_0px_#000000] transition cursor-pointer shrink-0 disabled:opacity-50"
                     title="อ่านแถวข้อมูลเดิมใน Google Sheet และแปลงแถวที่ซ้อนกันให้แยกออกเป็น 1 แถวต่อแรงงาน 1 คน ทั้งหมด"
                   >
-                    <RefreshCw className={`w-3.5 h-3.5 text-white ${isRestructuring ? 'animate-spin' : ''}`} />
+                    <RefreshCw className={`w-3.5 h-3.5 text-black ${isRestructuring ? 'animate-spin' : ''}`} />
                     <span>{isRestructuring ? 'กำลังจัดระเบียบ...' : 'แปลงข้อมูลเดิมใน Sheet ให้เป็น 1 แถวต่อคน'}</span>
                   </button>
                 </div>
               </div>
 
               {/* การจัดการเวอร์ชันและการอัปเดตระบบให้ผู้ใช้ทุกคนตรงกัน */}
-              <div className="bg-amber-50/70 border border-amber-200/90 rounded-xl p-3.5 space-y-2.5 shadow-2xs">
+              <div className="bg-[#FEF3C7] border-2 border-black rounded-xl p-3.5 space-y-2.5 shadow-[4px_4px_0px_0px_#000000]">
                 <div className="flex items-center justify-between">
-                  <div className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
-                    <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+                  <div className="text-xs font-black text-black flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-black shrink-0" />
                     <span>การอัปเดตระบบให้ผู้ใช้งานทุกคนตรงกัน (Auto Version Sync)</span>
                   </div>
-                  <span className="text-[10px] font-mono font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
+                  <span className="text-[10px] font-mono font-black text-black bg-[#FFE500] px-2 py-0.5 rounded border-2 border-black">
                     เวอร์ชันปัจจุบัน v{CURRENT_APP_VERSION}
                   </span>
                 </div>
 
-                <div className="text-[11px] text-amber-900 leading-relaxed space-y-1">
+                <div className="text-[11px] text-slate-900 font-medium leading-relaxed space-y-1">
                   <p>
                     <strong>กรณีมีผู้ใช้งานเปิดระบบค้างอยู่:</strong> ระบบมีตัวดักจับเวอร์ชันใหม่แบบเบื้องหลัง (Background Polling) ตรวจสอบทุก 60 วินาที และเมื่อผู้ใช้สลับหน้าจอกลับมา เมื่อมีเวอร์ชันใหม่ ป๊อปอัปแจ้งเตือน <em>"ระบบมีเวอร์ชันใหม่พร้อมใช้งาน"</em> จะปรากฏขึ้นที่มุมขวาบนของหน้าจอผู้ใช้ทุกคนทันที
                   </p>
-                  <p className="text-[10px] text-amber-800/80">
+                  <p className="text-[10px] text-slate-800 font-bold">
                     เมื่อผู้ใช้กดปุ่ม <strong>"กดอัปเดตระบบทันที"</strong> ระบบจะล้างไฟล์แคชเก่าและโหลดข้อมูลเวอร์ชันล่าสุดโดยอัตโนมัติ 100% โดยที่ข้อมูลที่กำลังกรอกหรือบันทึกแล้วจะไม่สูญหาย
                   </p>
                 </div>
 
                 {/* ปุ่มทดสอบส่งสัญญาณอัปเดตระบบไปยังผู้ใช้ทุกคน */}
-                <div className="pt-2 border-t border-amber-200/70 flex items-center justify-between flex-wrap gap-2">
-                  <span className="text-[10px] text-slate-500 font-medium">
+                <div className="pt-2 border-t-2 border-black flex items-center justify-between flex-wrap gap-2">
+                  <span className="text-[10px] text-black font-black">
                     ต้องการส่งสัญญาณทดสอบให้ทุกแท็บแสดงหน้าต่างอัปเดตทันที:
                   </span>
                   <button
@@ -858,29 +860,29 @@ function doPost(e) {
                       });
                       onNotify('ส่งสัญญาณแจ้งเตือนอัปเดตระบบไปยังทุกแท็บเรียบร้อยแล้ว');
                     }}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 active:scale-95 text-white text-xs font-bold rounded-lg shadow-2xs transition cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#FFE500] hover:bg-[#facc15] border-2 border-black text-black text-xs font-black rounded-lg shadow-[3px_3px_0px_0px_#000000] transition cursor-pointer"
                     title="ทดสอบส่งสัญญาณแจ้งเตือนการอัปเดตไปยังหน้าจอของผู้ใช้งานทุกคนทันที"
                   >
-                    <Sparkles className="w-3.5 h-3.5 text-white" />
+                    <Sparkles className="w-3.5 h-3.5 text-black" />
                     <span>ทดสอบส่งสัญญาณอัปเดตให้ทุกหน้าจอ</span>
                   </button>
                 </div>
               </div>
 
               {/* ส่งออกข้อมูลทุกสำนักงานจัดหางาน (ข้อมูลทั้งหมด) เฉพาะผู้ดูแลระบบที่เข้าด้วยรหัสผ่านในหน้าจัดการ Webhook */}
-              <div className="bg-emerald-50/80 border border-emerald-200/90 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+              <div className="bg-[#D1FAE5] border-2 border-black rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[4px_4px_0px_0px_#000000]">
                 <div className="flex items-start gap-2.5">
-                  <div className="p-1.5 rounded-lg bg-emerald-100 text-emerald-700 shrink-0 mt-0.5">
-                    <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                  <div className="p-1.5 rounded-lg bg-[#6EE7B7] border-2 border-black text-black shrink-0 mt-0.5 shadow-[2px_2px_0px_0px_#000000]">
+                    <FileSpreadsheet className="w-4 h-4 text-black" />
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-emerald-950 flex items-center gap-1.5 flex-wrap">
+                    <div className="text-xs font-black text-black flex items-center gap-1.5 flex-wrap">
                       <span>ส่งออกฐานข้อมูลรวม:</span>
-                      <span className="text-[10px] bg-emerald-100 text-emerald-800 font-semibold px-2 py-0.5 rounded-full border border-emerald-300">
+                      <span className="text-[10px] bg-white text-black font-black px-2 py-0.5 rounded border-2 border-black">
                         ทุกสำนักงานจัดหางาน (ข้อมูลทั้งหมด {records.length} รายการ)
                       </span>
                     </div>
-                    <div className="text-[11px] text-emerald-800/90 mt-0.5 leading-relaxed">
+                    <div className="text-[11px] text-slate-900 font-bold mt-0.5 leading-relaxed">
                       ดาวน์โหลดไฟล์ CSV ฐานข้อมูลของ <strong>ทุกสำนักงานจัดหางาน (ข้อมูลทั้งหมด)</strong> แบบแยก 1 แถวต่อแรงงาน 1 คน (สงวนสิทธิ์เฉพาะผู้มีรหัสผ่านจัดการ Webhook เท่านั้น)
                     </div>
                   </div>
@@ -895,29 +897,29 @@ function doPost(e) {
                         : `ส่งออกไฟล์ตารางฐานข้อมูล CSV ทุกสำนักงานจัดหางาน เรียบร้อยแล้ว`
                     );
                   }}
-                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer shrink-0"
+                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-[#6EE7B7] hover:bg-[#34D399] border-2 border-black text-black text-xs font-black rounded-xl shadow-[3px_3px_0px_0px_#000000] transition cursor-pointer shrink-0"
                   title="ดาวน์โหลดไฟล์ CSV ข้อมูลของทุกสำนักงานจัดหางานทั้งหมดในระบบ"
                 >
-                  <Download className="w-3.5 h-3.5 text-white" />
+                  <Download className="w-3.5 h-3.5 text-black" />
                   <span>ส่งออก CSV ทุกสำนักงาน ({records.length})</span>
                 </button>
               </div>
 
               {/* Reset Statistics to 0 section (Moved here per user request) */}
               {onClearAllRecords && (
-                <div className="bg-rose-50/70 border border-rose-200/90 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                <div className="bg-[#FECACA] border-2 border-black rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[4px_4px_0px_0px_#000000]">
                   <div className="flex items-start gap-2.5">
-                    <div className="p-1.5 rounded-lg bg-rose-100 text-rose-700 shrink-0 mt-0.5">
-                      <RotateCcw className="w-4 h-4 text-rose-600" />
+                    <div className="p-1.5 rounded-lg bg-[#FF6B6B] border-2 border-black text-black shrink-0 mt-0.5 shadow-[2px_2px_0px_0px_#000000]">
+                      <RotateCcw className="w-4 h-4 text-black" />
                     </div>
                     <div>
-                      <div className="text-xs font-bold text-rose-950 flex items-center gap-1.5">
+                      <div className="text-xs font-black text-black flex items-center gap-1.5">
                         <span>รีเซ็ตสถิติ:</span>
-                        <span className="text-[10px] bg-rose-100 text-rose-800 font-semibold px-2 py-0.5 rounded-full border border-rose-200">
+                        <span className="text-[10px] bg-white text-black font-black px-2 py-0.5 rounded border-2 border-black">
                           รีเซ็ตเป็น 0
                         </span>
                       </div>
-                      <div className="text-[11px] text-rose-700/90 mt-0.5 leading-relaxed">
+                      <div className="text-[11px] text-slate-900 font-bold mt-0.5 leading-relaxed">
                         หากลบข้อมูลใน Google Sheet แล้วต้องการให้ตัวเลขสถิติภาพรวมในระบบเป็น 0 ทันที
                       </div>
                     </div>
@@ -928,17 +930,17 @@ function doPost(e) {
                       onClearAllRecords();
                       setShowWebhookModal(false);
                     }}
-                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white hover:bg-rose-50 active:scale-95 text-rose-700 hover:text-rose-800 border border-rose-300 text-xs font-bold rounded-xl shadow-xs transition cursor-pointer shrink-0"
+                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white hover:bg-[#FF6B6B] text-black border-2 border-black text-xs font-black rounded-xl shadow-[3px_3px_0px_0px_#000000] transition cursor-pointer shrink-0"
                     title="หากลบข้อมูลใน Google Sheet แล้วต้องการให้ตัวเลขสถิติในระบบเป็น 0 ทันที"
                   >
-                    <RotateCcw className="w-3.5 h-3.5 text-rose-600" />
+                    <RotateCcw className="w-3.5 h-3.5 text-black" />
                     <span>รีเซ็ตเป็น 0</span>
                   </button>
                 </div>
               )}
             </div>
 
-            <div className="mt-5 flex items-center justify-between pt-3 border-t border-slate-200">
+            <div className="mt-5 flex items-center justify-between pt-3 border-t-2 border-black">
               <div>
                 {webhookUrl && (
                   <button
@@ -951,7 +953,7 @@ function doPost(e) {
                       setShowWebhookModal(false);
                       onNotify('ยกเลิก Webhook เรียบร้อยแล้ว');
                     }}
-                    className="text-rose-600 hover:text-rose-700 text-xs font-medium cursor-pointer"
+                    className="text-red-700 hover:underline text-xs font-black cursor-pointer"
                   >
                     ลบ Webhook นี้
                   </button>
@@ -961,14 +963,14 @@ function doPost(e) {
                 <button
                   type="button"
                   onClick={() => setShowWebhookModal(false)}
-                  className="px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium transition cursor-pointer"
+                  className="px-3.5 py-1.5 rounded-lg border-2 border-black bg-white hover:bg-slate-100 text-black text-xs font-black shadow-[2px_2px_0px_0px_#000000] transition cursor-pointer"
                 >
                   ปิด
                 </button>
                 <button
                   type="button"
                   onClick={handleSaveWebhook}
-                  className="px-4 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold transition shadow-xs cursor-pointer"
+                  className="px-4 py-1.5 rounded-lg bg-[#FFE500] hover:bg-[#facc15] border-2 border-black text-black text-xs font-black shadow-[3px_3px_0px_0px_#000000] hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all cursor-pointer"
                 >
                   บันทึกการตั้งค่า
                 </button>
@@ -980,49 +982,49 @@ function doPost(e) {
 
       {/* Confirmation Modal before syncing all records (per skill requirement) */}
       {showConfirmSync && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-5 border border-slate-200 space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-[#FFFDF7] rounded-2xl shadow-[8px_8px_0px_0px_#000000] max-w-md w-full p-6 border-3 border-black space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+              <div className="w-11 h-11 rounded-xl bg-[#6EE7B7] border-2 border-black text-black flex items-center justify-center shrink-0 shadow-[3px_3px_0px_0px_#000000]">
                 <FileSpreadsheet className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-semibold text-slate-900 text-base">ยืนยันการส่งข้อมูลลง Google Sheet?</h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  จะทำการส่งข้อมูลคำขอจำนวน <strong className="text-slate-800">{records.length} รายการ</strong> ไปยังสเปรดชีต
+                <h3 className="font-black text-black text-base">ยืนยันการส่งข้อมูลลง Google Sheet?</h3>
+                <p className="text-xs text-slate-800 font-bold mt-0.5">
+                  จะทำการส่งข้อมูลคำขอจำนวน <strong className="text-black bg-[#FFE500] px-1 border border-black">{records.length} รายการ</strong> ไปยังสเปรดชีต
                 </p>
               </div>
             </div>
 
-            <div className="p-3 bg-slate-50 rounded-lg text-xs text-slate-600 space-y-1 border border-slate-200/60">
+            <div className="p-3 bg-white rounded-xl text-xs text-slate-900 space-y-1.5 border-2 border-black shadow-[3px_3px_0px_0px_#000000]">
               <div className="flex justify-between">
-                <span>Spreadsheet ID:</span>
-                <span className="font-mono text-slate-800 font-medium">{SPREADSHEET_ID}</span>
+                <span className="font-bold">Spreadsheet ID:</span>
+                <span className="font-mono text-black font-black">{SPREADSHEET_ID}</span>
               </div>
               <div className="flex justify-between">
-                <span>คอลัมน์แรก:</span>
-                <span className="text-slate-800 font-medium">ลำดับที่ (รันอัตโนมัติ)</span>
+                <span className="font-bold">คอลัมน์แรก:</span>
+                <span className="text-black font-black">ลำดับที่ (รันอัตโนมัติ)</span>
               </div>
               <div className="flex justify-between">
-                <span>คอลัมน์สุดท้าย:</span>
-                <span className="text-slate-800 font-medium">Time Stamp</span>
+                <span className="font-bold">คอลัมน์สุดท้าย:</span>
+                <span className="text-black font-black">Time Stamp</span>
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t-2 border-black">
               <button
                 type="button"
                 onClick={() => setShowConfirmSync(false)}
-                className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-medium transition cursor-pointer"
+                className="px-3.5 py-2 rounded-lg border-2 border-black bg-white text-black hover:bg-slate-100 text-xs font-black shadow-[2px_2px_0px_0px_#000000] transition cursor-pointer"
               >
                 ยกเลิก
               </button>
               <button
                 type="button"
                 onClick={handleSyncAll}
-                className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-semibold shadow-xs transition cursor-pointer inline-flex items-center gap-1.5"
+                className="px-4 py-2 rounded-lg bg-[#6EE7B7] hover:bg-[#34D399] border-2 border-black text-black text-xs font-black shadow-[3px_3px_0px_0px_#000000] transition cursor-pointer inline-flex items-center gap-1.5"
               >
-                <CheckCircle2 className="w-3.5 h-3.5" />
+                <CheckCircle2 className="w-4 h-4" />
                 <span>ยืนยัน ส่งข้อมูลลง Sheet</span>
               </button>
             </div>

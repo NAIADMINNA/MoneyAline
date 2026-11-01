@@ -200,28 +200,27 @@ const book = String(r.receiptBook || '').trim();
     <div className="w-full max-w-[1600px] 2xl:max-w-[1720px] mx-auto space-y-6 transition-all duration-300">
 
       {/* CSV Export & Office Selector Panel (ตามที่ผู้ใช้งานร้องขอ) */}
-      <div className="bg-gradient-to-br from-emerald-600/5 via-teal-500/10 to-blue-600/5 rounded-2xl border-2 border-emerald-300/80 p-5 sm:p-6 shadow-md shadow-emerald-500/5 backdrop-blur-sm relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-400/10 rounded-full blur-2xl pointer-events-none -z-10" />
+      <div className="bg-[#D1FAE5] rounded-2xl border-3 border-black p-5 sm:p-6 shadow-[6px_6px_0px_0px_#000000] relative overflow-hidden">
         
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5">
           
           {/* Header & Description */}
           <div className="space-y-1.5 max-w-xl">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-md shadow-emerald-600/25 ring-2 ring-emerald-100">
-                <FileSpreadsheet className="w-5 h-5" />
+              <div className="w-10 h-10 rounded-xl bg-[#FFE500] text-black border-2 border-black flex items-center justify-center shadow-[3px_3px_0px_0px_#000000]">
+                <FileSpreadsheet className="w-5 h-5 stroke-[2.5]" />
               </div>
               <div>
-                <h3 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
-                  ส่งออกไฟล์ฐานข้อมูล CSV รายสำนักงาน
-                  <span className="text-[11px] font-bold bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-2.5 py-0.5 rounded-full shadow-2xs">
+                <h3 className="text-base sm:text-lg font-black text-black flex items-center gap-2 flex-wrap">
+                  <span>ส่งออกไฟล์ฐานข้อมูล CSV รายสำนักงาน</span>
+                  <span className="text-[11px] font-black bg-[#FFE500] text-black px-2.5 py-0.5 rounded-md border-2 border-black shadow-[2px_2px_0px_0px_#000000]">
                     22 คอลัมน์ฐานข้อมูล
                   </span>
                 </h3>
               </div>
             </div>
-            <p className="text-xs text-slate-600 leading-relaxed pt-1">
-              เลือกสำนักงานจัดหางานที่ต้องการส่งออกข้อมูล โครงสร้างตารางอ้างอิงตรงตามฐานข้อมูลหลัก Google Sheet พร้อมแปลงวันที่ชำระเงินเป็น <strong className="text-emerald-700 font-bold">พ.ศ.</strong> และเข้ารหัส UTF-8 BOM สำหรับเปิดใน Microsoft Excel ได้อย่างถูกต้อง
+            <p className="text-xs text-neutral-900 font-bold leading-relaxed pt-1">
+              เลือกสำนักงานจัดหางานที่ต้องการส่งออกข้อมูล โครงสร้างตารางอ้างอิงตรงตามฐานข้อมูลหลัก Google Sheet พร้อมแปลงวันที่ชำระเงินเป็น <strong className="bg-white px-1.5 py-0.2 border border-black font-black">พ.ศ.</strong> และเข้ารหัส UTF-8 BOM สำหรับเปิดใน Microsoft Excel ได้อย่างถูกต้อง
             </p>
           </div>
 
@@ -230,15 +229,15 @@ const book = String(r.receiptBook || '').trim();
             
             {/* Employment Office Selection Dropdown (Only specific offices allowed) */}
             <div className="relative min-w-[280px] sm:min-w-[320px]">
-              <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center gap-1.5">
-                <Building2 className="w-3.5 h-3.5 text-blue-600" />
+              <label className="block text-[11px] font-black text-black mb-1 flex items-center gap-1.5">
+                <Building2 className="w-3.5 h-3.5 text-black stroke-[2.5]" />
                 <span>เลือกสำนักงานจัดหางาน (ระบุรายสำนักงาน):</span>
               </label>
               <div className="relative">
                 <select
                   value={selectedOffice}
                   onChange={(e) => setSelectedOffice(e.target.value)}
-                  className="w-full pl-3.5 pr-8 py-2.5 text-xs font-semibold text-slate-800 bg-white border-2 border-emerald-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 shadow-xs cursor-pointer appearance-none transition"
+                  className="w-full pl-3.5 pr-8 py-2.5 text-xs font-extrabold text-black bg-white border-2 border-black rounded-xl focus:outline-none focus:bg-[#FFFBEB] shadow-[3px_3px_0px_0px_#000000] cursor-pointer appearance-none transition"
                 >
                   {activeOfficesInData.length > 0 && (
                     <optgroup label="── สำนักงานที่มีรายการในระบบ ──">
@@ -275,43 +274,43 @@ const book = String(r.receiptBook || '').trim();
                     })}
                   </optgroup>
                 </select>
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-emerald-600">
-                  <Filter className="w-3.5 h-3.5" />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-black">
+                  <Filter className="w-3.5 h-3.5 stroke-[2.5]" />
                 </div>
               </div>
             </div>
 
             {/* Pull from Google Sheet Button (ALWAYS visible to sync with online sheet) */}
             <div className="sm:self-end">
-              <label className="block text-[11px] font-bold text-blue-900 mb-1 flex items-center gap-1">
-                <RefreshCw className="w-3.5 h-3.5 text-blue-600" />
+              <label className="block text-[11px] font-black text-black mb-1 flex items-center gap-1">
+                <RefreshCw className="w-3.5 h-3.5 text-black stroke-[2.5]" />
                 <span>ดึงข้อมูลฐานข้อมูล:</span>
               </label>
               <button
                 type="button"
                 onClick={onRefreshFromSheet}
                 disabled={isRefreshing}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-800 active:scale-95 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-600/25 transition cursor-pointer disabled:opacity-50"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#60A5FA] hover:bg-[#3B82F6] text-black text-xs font-black rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_#000000] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#000000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all cursor-pointer disabled:opacity-50"
                 title="คลิกเพื่อดึงข้อมูลล่าสุดจาก Google Sheet เพื่ออัปเดตสถิติให้ตรงกับฐานข้อมูลจริงทันที"
               >
-                <RefreshCw className={`w-4 h-4 text-white ${isRefreshing ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-4 h-4 text-black stroke-[2.5] ${isRefreshing ? 'animate-spin' : ''}`} />
                 <span>{isRefreshing ? 'กำลังดึงข้อมูล...' : 'ดึงข้อมูลจาก Google Sheet'}</span>
               </button>
             </div>
 
             {/* Export CSV Button (Always 1 row per worker & always clickable) */}
             <div className="sm:self-end">
-              <label className="block text-[11px] font-bold text-emerald-900 mb-1 flex items-center gap-1">
-                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+              <label className="block text-[11px] font-black text-black mb-1 flex items-center gap-1">
+                <FileSpreadsheet className="w-3.5 h-3.5 text-black stroke-[2.5]" />
                 <span>ดาวน์โหลด (แยก 1 แถวต่อคน):</span>
               </label>
               <button
                 type="button"
                 onClick={handleExportCSV}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 active:scale-95 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/30 transition cursor-pointer"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#FFE500] hover:bg-[#FDE047] text-black text-xs font-black rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_#000000] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#000000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all cursor-pointer"
                 title={`คลิกเพื่อส่งออกข้อมูล ${selectedOffice}`}
               >
-                <Download className="w-4 h-4 text-white" />
+                <Download className="w-4 h-4 text-black stroke-[2.5]" />
                 <span>
                   ส่งออกไฟล์ CSV ({filteredRecordsForExport.length} รายการ)
                 </span>
@@ -323,151 +322,151 @@ const book = String(r.receiptBook || '').trim();
         </div>
 
         {/* Selected office summary preview & Toast */}
-        <div className="mt-4 pt-3.5 border-t border-emerald-200/60 flex flex-wrap items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-4 flex-wrap text-slate-700">
-            <span className="font-semibold text-slate-800 flex items-center gap-1.5">
+        <div className="mt-4 pt-3.5 border-t-2 border-black flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-3.5 flex-wrap text-black font-bold">
+            <span className="font-extrabold text-black flex items-center gap-1.5">
               <span>สำนักงานที่เลือก:</span>
-              <strong className="text-emerald-950 bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 rounded-lg">
+              <strong className="text-black bg-white border-2 border-black px-2.5 py-0.5 rounded-lg shadow-[2px_2px_0px_0px_#000000]">
                 {selectedOffice || 'ยังไม่ได้เลือก'}
               </strong>
             </span>
-            <span>•</span>
+            <span className="font-black">•</span>
             <span>
-              จำนวนคำขอ: <strong className="text-emerald-700 font-mono font-bold">{formatNumber(selectedOfficeStats.count)}</strong> ฉบับ
+              จำนวนคำขอ: <strong className="text-black bg-[#FFE500] px-1.5 py-0.5 rounded border border-black font-mono font-black">{formatNumber(selectedOfficeStats.count)}</strong> ฉบับ
             </span>
-            <span>•</span>
+            <span className="font-black">•</span>
             <span>
-              แรงงานรวม: <strong className="text-indigo-700 font-mono font-bold">{formatNumber(selectedOfficeStats.workers)}</strong> คน
+              แรงงานรวม: <strong className="text-black bg-[#BFDBFE] px-1.5 py-0.5 rounded border border-black font-mono font-black">{formatNumber(selectedOfficeStats.workers)}</strong> คน
             </span>
-            <span>•</span>
+            <span className="font-black">•</span>
             <span>
-              ยอดเงินรวม: <strong className="text-blue-900 font-mono font-extrabold text-sm">{formatThaiCurrency(selectedOfficeStats.amount)}</strong>
+              ยอดเงินรวม: <strong className="text-black bg-white px-2 py-0.5 rounded border-2 border-black font-mono font-black text-sm shadow-[2px_2px_0px_0px_#000000]">{formatThaiCurrency(selectedOfficeStats.amount)}</strong>
             </span>
 
             {selectedOfficeStats.count === 0 && (
-              <span className="text-amber-800 bg-amber-100 border border-amber-300 px-2.5 py-0.5 rounded-md font-semibold text-[11px]">
+              <span className="text-black bg-[#FDE68A] border-2 border-black px-2.5 py-0.5 rounded-md font-extrabold text-[11px] shadow-[2px_2px_0px_0px_#000000]">
                 สำนักงานนี้ยังไม่มีข้อมูลในระบบ
               </span>
             )}
           </div>
 
           {exportSuccessMessage && (
-            <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 text-white rounded-xl text-xs font-semibold shadow-md shadow-emerald-600/20 animate-in fade-in duration-200">
-              <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+            <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#FFE500] text-black border-2 border-black rounded-xl text-xs font-black shadow-[3px_3px_0px_0px_#000000] animate-in fade-in duration-200">
+              <CheckCircle2 className="w-4 h-4 text-black stroke-[2.5]" />
               <span>{exportSuccessMessage}</span>
             </div>
           )}
         </div>
       </div>
 
-      {/* 3 Metric Cards with Rich Vibrancy */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* 3 Metric Cards with Neo-Brutalist High Contrast */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         {/* Metric 1: ยอดเงินรวม */}
-        <div className="bg-gradient-to-br from-blue-700 via-indigo-700 to-blue-900 text-white rounded-2xl p-5 shadow-lg shadow-blue-700/20 relative overflow-hidden flex items-center justify-between group hover:-translate-y-0.5 transition-transform duration-200">
+        <div className="bg-[#BFDBFE] text-black rounded-2xl border-3 border-black p-5 shadow-[6px_6px_0px_0px_#000000] relative overflow-hidden flex items-center justify-between hover:-translate-y-0.5 transition-transform duration-150">
           <div className="space-y-1">
-            <p className="text-xs font-medium text-blue-200">ยอดเงินหลักประกันรวมทั้งสิ้น</p>
-            <h3 className="text-2xl sm:text-3xl font-extrabold font-mono tracking-tight text-white drop-shadow-xs">
+            <p className="text-xs font-black text-neutral-900">ยอดเงินหลักประกันรวมทั้งสิ้น</p>
+            <h3 className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-black">
               {formatThaiCurrency(totalAmount)}
             </h3>
-            <p className="text-[11px] text-blue-200 flex items-center gap-1 font-medium pt-0.5">
-              <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+            <p className="text-[11px] text-black flex items-center gap-1 font-extrabold pt-0.5">
+              <TrendingUp className="w-3.5 h-3.5 text-black stroke-[2.5]" />
               <span>อัตราจัดเก็บ 1,000 บาท/คน</span>
             </p>
           </div>
-          <div className="w-13 h-13 rounded-2xl bg-white/15 text-white backdrop-blur-md ring-1 ring-white/25 flex items-center justify-center shrink-0 shadow-inner">
-            <CircleDollarSign className="w-7 h-7 text-white" />
+          <div className="w-13 h-13 rounded-xl bg-white text-black border-2 border-black flex items-center justify-center shrink-0 shadow-[3px_3px_0px_0px_#000000]">
+            <CircleDollarSign className="w-7 h-7 text-black stroke-[2.5]" />
           </div>
         </div>
 
         {/* Metric 2: จำนวนแรงงาน */}
-        <div className="bg-gradient-to-br from-emerald-600 via-teal-600 to-emerald-800 text-white rounded-2xl p-5 shadow-lg shadow-emerald-600/20 relative overflow-hidden flex items-center justify-between group hover:-translate-y-0.5 transition-transform duration-200">
+        <div className="bg-[#6EE7B7] text-black rounded-2xl border-3 border-black p-5 shadow-[6px_6px_0px_0px_#000000] relative overflow-hidden flex items-center justify-between hover:-translate-y-0.5 transition-transform duration-150">
           <div className="space-y-1">
-            <p className="text-xs font-medium text-emerald-100">จำนวนแรงงานต่างด้าวรวม</p>
-            <h3 className="text-2xl sm:text-3xl font-extrabold font-mono tracking-tight text-white drop-shadow-xs">
-              {formatNumber(totalWorkers)} <span className="text-base font-normal text-emerald-200">คน</span>
+            <p className="text-xs font-black text-neutral-900">จำนวนแรงงานต่างด้าวรวม</p>
+            <h3 className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-black">
+              {formatNumber(totalWorkers)} <span className="text-base font-extrabold text-black">คน</span>
             </h3>
-            <p className="text-[11px] text-emerald-100 pt-0.5">
+            <p className="text-[11px] text-black font-extrabold pt-0.5">
               จาก {totalTransactions} รายการคำขอในระบบ
             </p>
           </div>
-          <div className="w-13 h-13 rounded-2xl bg-white/15 text-white backdrop-blur-md ring-1 ring-white/25 flex items-center justify-center shrink-0 shadow-inner">
-            <Users className="w-7 h-7 text-white" />
+          <div className="w-13 h-13 rounded-xl bg-white text-black border-2 border-black flex items-center justify-center shrink-0 shadow-[3px_3px_0px_0px_#000000]">
+            <Users className="w-7 h-7 text-black stroke-[2.5]" />
           </div>
         </div>
 
         {/* Metric 3: สัดส่วนนายจ้าง */}
-        <div className="bg-gradient-to-br from-amber-500 via-orange-500 to-amber-700 text-white rounded-2xl p-5 shadow-lg shadow-amber-500/20 relative overflow-hidden flex items-center justify-between group hover:-translate-y-0.5 transition-transform duration-200">
+        <div className="bg-[#FDE68A] text-black rounded-2xl border-3 border-black p-5 shadow-[6px_6px_0px_0px_#000000] relative overflow-hidden flex items-center justify-between hover:-translate-y-0.5 transition-transform duration-150">
           <div className="space-y-1">
-            <p className="text-xs font-medium text-amber-100">สัดส่วนประเภทนายจ้าง</p>
+            <p className="text-xs font-black text-neutral-900">สัดส่วนประเภทนายจ้าง</p>
             <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-base sm:text-lg font-bold text-white">
+              <span className="text-base sm:text-lg font-black text-black">
                 นิติบุคคล {juristicCount}
               </span>
-              <span className="text-amber-200">/</span>
-              <span className="text-base sm:text-lg font-bold text-white">
+              <span className="text-black font-black">/</span>
+              <span className="text-base sm:text-lg font-black text-black">
                 บุคคล {individualCount}
               </span>
             </div>
-            <p className="text-[11px] text-amber-100 pt-0.5">
+            <p className="text-[11px] text-black font-extrabold pt-0.5">
               รวมนายจ้าง {juristicCount + individualCount} ราย
             </p>
           </div>
-          <div className="w-13 h-13 rounded-2xl bg-white/15 text-white backdrop-blur-md ring-1 ring-white/25 flex items-center justify-center shrink-0 shadow-inner">
-            <Building className="w-7 h-7 text-white" />
+          <div className="w-13 h-13 rounded-xl bg-white text-black border-2 border-black flex items-center justify-center shrink-0 shadow-[3px_3px_0px_0px_#000000]">
+            <Building className="w-7 h-7 text-black stroke-[2.5]" />
           </div>
         </div>
       </div>
 
-      {/* Breakdown Panels with Vibrant Gradient Accents */}
+      {/* Breakdown Panels with Neo-Brutalist Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Office Breakdown (สถิติตามสำนักงานจัดหางาน - เรียงจากยอดจัดเก็บ ตามมากไปน้อย) */}
-        <div className="bg-white rounded-2xl border border-slate-200/90 border-t-4 border-t-emerald-500 p-5 shadow-sm hover:shadow-md transition-shadow">
-          <h4 className="text-sm font-bold text-slate-800 pb-3 border-b border-slate-100 mb-3 flex items-center justify-between">
+        <div className="bg-white rounded-2xl border-3 border-black p-5 shadow-[6px_6px_0px_0px_#000000]">
+          <h4 className="text-sm font-black text-black pb-3 border-b-2 border-black mb-3 flex items-center justify-between gap-2 flex-wrap">
             <span className="flex items-center gap-2">
-              <span className="p-1 rounded-lg bg-emerald-50 text-emerald-600">
-                <Building2 className="w-4 h-4" />
+              <span className="p-1.5 rounded-lg bg-[#6EE7B7] text-black border-2 border-black shadow-[2px_2px_0px_0px_#000000]">
+                <Building2 className="w-4 h-4 stroke-[2.5]" />
               </span>
               <span>สถิติตามสำนักงานจัดหางาน</span>
             </span>
-            <span className="inline-flex items-center gap-1 text-[11px] text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200 font-semibold shadow-2xs" title="เรียงจากยอดจัดเก็บ ตามมากไปน้อย">
-              <ArrowDownWideNarrow className="w-3.5 h-3.5 text-emerald-600" />
+            <span className="inline-flex items-center gap-1 text-[11px] text-black bg-[#FFE500] px-2 py-0.5 rounded-md border-2 border-black font-black shadow-[2px_2px_0px_0px_#000000]" title="เรียงจากยอดจัดเก็บ ตามมากไปน้อย">
+              <ArrowDownWideNarrow className="w-3.5 h-3.5 text-black stroke-[2.5]" />
               <span>ยอดจัดเก็บ (มาก ➔ น้อย)</span>
             </span>
           </h4>
           <div className="space-y-3.5 max-h-[560px] overflow-y-auto pr-1">
             {sortedOfficeStats.length === 0 ? (
-              <p className="text-xs text-slate-400 py-3 text-center">ไม่มีข้อมูลสำนักงาน</p>
+              <p className="text-xs font-bold text-neutral-500 py-3 text-center">ไม่มีข้อมูลสำนักงาน</p>
             ) : (
               sortedOfficeStats.map(([office, data], index) => {
                 const pct = totalAmount > 0 ? (data.amount / totalAmount) * 100 : 0;
                 return (
                   <div key={office} className="space-y-1.5">
-                    <div className="flex items-start justify-between gap-2 text-xs text-slate-700">
+                    <div className="flex items-start justify-between gap-2 text-xs text-black">
                       <div className="flex items-start gap-1.5 min-w-0 flex-1">
-                        <span className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-mono font-bold shrink-0 mt-0.5 shadow-2xs ${
+                        <span className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-mono font-black shrink-0 mt-0.5 border-2 border-black ${
                           index === 0
-                            ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                            ? 'bg-[#FFE500] text-black'
                             : index === 1
-                            ? 'bg-slate-200 text-slate-800 border border-slate-300'
+                            ? 'bg-[#6EE7B7] text-black'
                             : index === 2
-                            ? 'bg-orange-100 text-orange-900 border border-orange-300'
-                            : 'bg-slate-100 text-slate-600 border border-slate-200'
+                            ? 'bg-[#FDBA74] text-black'
+                            : 'bg-[#F3F4F6] text-black'
                         }`}>
                           {index + 1}
                         </span>
-                        <span className="font-semibold text-slate-800 leading-snug break-words" title={office}>
+                        <span className="font-extrabold text-black leading-snug break-words" title={office}>
                           {office}
                         </span>
                       </div>
-                      <span className="font-mono font-bold text-slate-900 shrink-0 text-right">
-                        {formatThaiCurrency(data.amount)} <span className="text-slate-500 font-normal">({data.workers} คน)</span>
+                      <span className="font-mono font-black text-black shrink-0 text-right">
+                        {formatThaiCurrency(data.amount)} <span className="text-neutral-700 font-bold">({data.workers} คน)</span>
                       </span>
                     </div>
-                    <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden p-0.5">
+                    <div className="w-full bg-[#F3F4F6] h-3 rounded-md border-2 border-black overflow-hidden">
                       <div 
-                        className="bg-gradient-to-r from-emerald-500 to-teal-500 h-full rounded-full transition-all duration-500" 
-                        style={{ width: `${Math.max(pct, 2)}%` }} 
+                        className="bg-[#22C55E] h-full border-r-2 border-black transition-all duration-500" 
+                        style={{ width: `${Math.max(pct, 3)}%` }} 
                       />
                     </div>
                   </div>
@@ -478,41 +477,41 @@ const book = String(r.receiptBook || '').trim();
         </div>
 
         {/* Nationality Breakdown */}
-        <div className="bg-white rounded-2xl border border-slate-200/90 border-t-4 border-t-indigo-500 p-5 shadow-sm hover:shadow-md transition-shadow">
-          <h4 className="text-sm font-bold text-slate-800 pb-3 border-b border-slate-100 mb-3 flex items-center justify-between">
+        <div className="bg-white rounded-2xl border-3 border-black p-5 shadow-[6px_6px_0px_0px_#000000]">
+          <h4 className="text-sm font-black text-black pb-3 border-b-2 border-black mb-3 flex items-center justify-between gap-2 flex-wrap">
             <span className="flex items-center gap-2">
-              <span className="p-1 rounded-lg bg-indigo-50 text-indigo-600">
-                <Users className="w-4 h-4" />
+              <span className="p-1.5 rounded-lg bg-[#E9D5FF] text-black border-2 border-black shadow-[2px_2px_0px_0px_#000000]">
+                <Users className="w-4 h-4 stroke-[2.5]" />
               </span>
               <span>สถิติตามสัญชาติแรงงาน</span>
             </span>
-            <span className="inline-flex items-center gap-1 text-[11px] text-indigo-800 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-200 font-semibold shadow-2xs">
-              <ArrowDownWideNarrow className="w-3.5 h-3.5 text-indigo-600" />
+            <span className="inline-flex items-center gap-1 text-[11px] text-black bg-[#E9D5FF] px-2 py-0.5 rounded-md border-2 border-black font-black shadow-[2px_2px_0px_0px_#000000]">
+              <ArrowDownWideNarrow className="w-3.5 h-3.5 text-black stroke-[2.5]" />
               <span>จำนวนคน (มาก ➔ น้อย)</span>
             </span>
           </h4>
           <div className="space-y-3.5 max-h-[560px] overflow-y-auto pr-1">
             {sortedNationalityStats.length === 0 ? (
-              <p className="text-xs text-slate-400 py-3 text-center">ไม่มีข้อมูลแรงงานในระบบ</p>
+              <p className="text-xs font-bold text-neutral-500 py-3 text-center">ไม่มีข้อมูลแรงงานในระบบ</p>
             ) : (
               sortedNationalityStats.map(([nat, count], index) => {
                 const totalNatWorkers = Object.values(nationalityStats).reduce((a, b) => a + b, 0);
                 const pct = totalNatWorkers > 0 ? (count / totalNatWorkers) * 100 : 0;
                 return (
                   <div key={nat} className="space-y-1.5">
-                    <div className="flex items-start justify-between gap-2 text-xs text-slate-700">
+                    <div className="flex items-start justify-between gap-2 text-xs text-black">
                       <div className="flex items-start gap-1.5 min-w-0 flex-1">
-                        <span className="w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-mono font-bold shrink-0 mt-0.5 bg-slate-100 text-indigo-900 border border-indigo-100">
+                        <span className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-mono font-black shrink-0 mt-0.5 bg-[#E9D5FF] text-black border-2 border-black">
                           {index + 1}
                         </span>
-                        <span className="font-semibold text-slate-800 leading-snug break-words">{nat}</span>
+                        <span className="font-extrabold text-black leading-snug break-words">{nat}</span>
                       </div>
-                      <span className="font-mono font-bold text-indigo-950 shrink-0 text-right">{formatNumber(count)} คน <span className="text-slate-400 font-normal">({pct.toFixed(1)}%)</span></span>
+                      <span className="font-mono font-black text-black shrink-0 text-right">{formatNumber(count)} คน <span className="text-neutral-700 font-bold">({pct.toFixed(1)}%)</span></span>
                     </div>
-                    <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden p-0.5">
+                    <div className="w-full bg-[#F3F4F6] h-3 rounded-md border-2 border-black overflow-hidden">
                       <div 
-                        className="bg-gradient-to-r from-indigo-500 via-purple-500 to-violet-500 h-full rounded-full transition-all duration-500" 
-                        style={{ width: `${Math.max(pct, 2)}%` }} 
+                        className="bg-[#C084FC] h-full border-r-2 border-black transition-all duration-500" 
+                        style={{ width: `${Math.max(pct, 3)}%` }} 
                       />
                     </div>
                   </div>
@@ -523,40 +522,40 @@ const book = String(r.receiptBook || '').trim();
         </div>
 
         {/* Alien Category Breakdown */}
-        <div className="bg-white rounded-2xl border border-slate-200/90 border-t-4 border-t-blue-500 p-5 shadow-sm hover:shadow-md transition-shadow">
-          <h4 className="text-sm font-bold text-slate-800 pb-3 border-b border-slate-100 mb-3 flex items-center justify-between">
+        <div className="bg-white rounded-2xl border-3 border-black p-5 shadow-[6px_6px_0px_0px_#000000]">
+          <h4 className="text-sm font-black text-black pb-3 border-b-2 border-black mb-3 flex items-center justify-between gap-2 flex-wrap">
             <span className="flex items-center gap-2">
-              <span className="p-1 rounded-lg bg-blue-50 text-blue-600">
-                <Layers className="w-4 h-4" />
+              <span className="p-1.5 rounded-lg bg-[#BFDBFE] text-black border-2 border-black shadow-[2px_2px_0px_0px_#000000]">
+                <Layers className="w-4 h-4 stroke-[2.5]" />
               </span>
               <span>สถิติตามประเภทแรงงาน</span>
             </span>
-            <span className="inline-flex items-center gap-1 text-[11px] text-blue-800 bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-200 font-semibold shadow-2xs">
-              <ArrowDownWideNarrow className="w-3.5 h-3.5 text-blue-600" />
+            <span className="inline-flex items-center gap-1 text-[11px] text-black bg-[#BFDBFE] px-2 py-0.5 rounded-md border-2 border-black font-black shadow-[2px_2px_0px_0px_#000000]">
+              <ArrowDownWideNarrow className="w-3.5 h-3.5 text-black stroke-[2.5]" />
               <span>จำนวนคน (มาก ➔ น้อย)</span>
             </span>
           </h4>
           <div className="space-y-3.5 max-h-[560px] overflow-y-auto pr-1">
             {sortedCategoryStats.length === 0 ? (
-              <p className="text-xs text-slate-400 py-3 text-center">ไม่มีข้อมูลประเภทแรงงานในระบบ</p>
+              <p className="text-xs font-bold text-neutral-500 py-3 text-center">ไม่มีข้อมูลประเภทแรงงานในระบบ</p>
             ) : (
               sortedCategoryStats.map(([cat, count], index) => {
                 const pct = totalWorkers > 0 ? (count / totalWorkers) * 100 : 0;
                 return (
                   <div key={cat} className="space-y-1.5">
-                    <div className="flex items-start justify-between gap-2 text-xs text-slate-700">
+                    <div className="flex items-start justify-between gap-2 text-xs text-black">
                       <div className="flex items-start gap-1.5 min-w-0 flex-1">
-                        <span className="w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-mono font-bold shrink-0 mt-0.5 bg-slate-100 text-blue-900 border border-blue-100">
+                        <span className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-mono font-black shrink-0 mt-0.5 bg-[#BFDBFE] text-black border-2 border-black">
                           {index + 1}
                         </span>
-                        <span className="font-semibold text-slate-800 leading-snug break-words">{cat}</span>
+                        <span className="font-extrabold text-black leading-snug break-words">{cat}</span>
                       </div>
-                      <span className="font-mono font-bold text-blue-950 shrink-0 text-right">{formatNumber(count)} คน <span className="text-slate-400 font-normal">({pct.toFixed(1)}%)</span></span>
+                      <span className="font-mono font-black text-black shrink-0 text-right">{formatNumber(count)} คน <span className="text-neutral-700 font-bold">({pct.toFixed(1)}%)</span></span>
                     </div>
-                    <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden p-0.5">
+                    <div className="w-full bg-[#F3F4F6] h-3 rounded-md border-2 border-black overflow-hidden">
                       <div 
-                        className="bg-gradient-to-r from-blue-500 to-cyan-500 h-full rounded-full transition-all duration-500" 
-                        style={{ width: `${Math.max(pct, 2)}%` }} 
+                        className="bg-[#60A5FA] h-full border-r-2 border-black transition-all duration-500" 
+                        style={{ width: `${Math.max(pct, 3)}%` }} 
                       />
                     </div>
                   </div>
