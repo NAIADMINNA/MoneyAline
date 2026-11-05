@@ -14,7 +14,8 @@ import {
   Building2,
   HelpCircle,
   Printer,
-  Receipt
+  Receipt,
+  Settings2
 } from 'lucide-react';
 import { FormDataState, DepositRecord, ForeignWorker } from '../types/deposit';
 import { 
@@ -41,6 +42,10 @@ import {
   generateSampleRequestNumber, 
   validateRequestNumber, 
   splitRequestNumbers,
+  parseAllowedPrefixes,
+  formatRequestConfigSummary,
+  isMatchingRequestPrefixWhileTyping,
+  isSingleRequestNumberCompleteAndValid,
   REQUEST_CONFIG_EVENT, 
   RequestNumberConfig 
 } from '../utils/requestNumberConfig';
@@ -52,6 +57,7 @@ interface DepositFormProps {
   isGoogleConnected?: boolean;
   onConnectGoogle?: () => void;
   hasWebhook?: boolean;
+  onOpenAdminRequestConfig?: () => void;
 }
 
 const LAST_EMPLOYER_TYPE_KEY = 'doe_last_employer_type';
@@ -63,6 +69,7 @@ export const DepositForm: React.FC<DepositFormProps> = ({
   isGoogleConnected = false,
   onConnectGoogle,
   hasWebhook = false,
+  onOpenAdminRequestConfig,
 }) => {
   const [formData, setFormData] = useState<FormDataState>(() => {
     const init = initialData || DEFAULT_FORM_DATA;
@@ -110,7 +117,10 @@ export const DepositForm: React.FC<DepositFormProps> = ({
 
   // อัปเดตเลขที่คำขอของแรงงานคนที่ index ใน Section 1
   const handleWorkerRequestNumberChange = (index: number, rawVal: string) => {
-    const clean = rawVal.replace(/\D/g, '').slice(0, reqConfig.length || 14);
+    const maxLen = reqConfig.enabled ? (reqConfig.length || 14) : 30;
+    const clean = reqConfig.allowAlphanumeric
+      ? rawVal.toUpperCase().replace(/[^A-Z0-9\-]/g, '').slice(0, maxLen)
+      : rawVal.replace(/\D/g, '').slice(0, maxLen);
     setFormData(prev => {
       const currentWorkers = [...(prev.workers || [])];
       while (currentWorkers.length <= index) {
@@ -161,14 +171,19 @@ export const DepositForm: React.FC<DepositFormProps> = ({
   };
 
   const handleRequestNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // กรองเฉพาะตัวเลข และเครื่องหมายคั่น เช่น จุลภาค, เคาะวรรค, ขึ้นบรรทัดใหม่, เซมิโคลอน
-    let raw = e.target.value;
-    let cleanVal = raw.replace(/[^\d,\s\n/;\-]/g, '');
-    
-    // หากเป็นเลขเดี่ยว (ไม่มีเครื่องหมายคั่น) ตัดไม่เกิน 14 หลัก
+    const raw = e.target.value;
+    const maxLen = reqConfig.enabled ? (reqConfig.length || 14) : 30;
+
+    // กรองอักขระตามโหมดที่แอดมินตั้งค่า (ตัวเลขล้วน หรือ ตัวอักษร+ตัวเลข+ขีด) และเครื่องหมายคั่นสำหรับหลายเลขคำขอ
+    let cleanVal = reqConfig.allowAlphanumeric
+      ? raw.toUpperCase().replace(/[^A-Z0-9,\s\n/;\-]/g, '')
+      : raw.replace(/[^\d,\s\n/;\-]/g, '');
+
+    // หากเป็นเลขเดี่ยว (ไม่มีเครื่องหมายคั่น) ตัดไม่เกินจำนวนหลักที่แอดมินกำหนด
     if (!cleanVal.includes(',') && !cleanVal.includes('\n') && !cleanVal.includes(';') && !cleanVal.includes('/')) {
-      const digitsOnly = cleanVal.replace(/\D/g, '').slice(0, 14);
-      cleanVal = digitsOnly;
+      cleanVal = reqConfig.allowAlphanumeric
+        ? cleanVal.replace(/[^A-Z0-9\-]/g, '').slice(0, maxLen)
+        : cleanVal.replace(/\D/g, '').slice(0, maxLen);
     }
 
     handleInputChange('requestNumber', cleanVal);
@@ -182,27 +197,39 @@ export const DepositForm: React.FC<DepositFormProps> = ({
       return;
     }
 
+    if (!reqConfig.enabled) {
+      setErrors(prev => {
+        const copy = { ...prev };
+        delete copy.requestNumber;
+        return copy;
+      });
+      return;
+    }
+
+    const prefixes = parseAllowedPrefixes(reqConfig.prefix);
+    const prefixErrorText =
+      prefixes.length === 1
+        ? `"${prefixes[0]}"`
+        : prefixes.map(p => `"${p}"`).join(' หรือ ');
+
     const list = splitRequestNumbers(cleanVal);
     // ตรวจสอบกรณีเลขคำขอเดียว
     if (list.length <= 1 && !cleanVal.includes(',')) {
       const singleNum = list[0] || '';
-      const prefix = '691';
 
-      // ตรวจสอบว่าขึ้นต้นด้วย 691 หรือไม่
-      const expectedSlice = prefix.slice(0, Math.min(prefix.length, singleNum.length));
-      if (!singleNum.startsWith(expectedSlice)) {
+      if (!isMatchingRequestPrefixWhileTyping(singleNum, reqConfig)) {
         setErrors(prev => ({
           ...prev,
-          requestNumber: 'เลขที่คำขอต้องขึ้นต้นด้วย "691" เสมอ',
+          requestNumber: `เลขที่คำขอต้องขึ้นต้นด้วย ${prefixErrorText} เสมอ`,
         }));
         return;
       }
 
-      if (singleNum.length === 14) {
-        if (!singleNum.startsWith('691')) {
+      if (singleNum.length === reqConfig.length) {
+        if (!isSingleRequestNumberCompleteAndValid(singleNum, reqConfig)) {
           setErrors(prev => ({
             ...prev,
-            requestNumber: 'เลขที่คำขอต้องขึ้นต้นด้วย "691" เสมอ',
+            requestNumber: `เลขที่คำขอต้องขึ้นต้นด้วย ${prefixErrorText} เสมอ`,
           }));
         } else {
           setErrors(prev => {
@@ -224,18 +251,18 @@ export const DepositForm: React.FC<DepositFormProps> = ({
       for (let i = 0; i < list.length; i++) {
         const num = list[i];
         const label = `เลขที่คำขอลำดับที่ ${i + 1}`;
-        if (!num.startsWith('691'.slice(0, Math.min(3, num.length)))) {
+        if (!isMatchingRequestPrefixWhileTyping(num, reqConfig)) {
           setErrors(prev => ({
             ...prev,
-            requestNumber: `${label} ต้องขึ้นต้นด้วย "691" เสมอ`,
+            requestNumber: `${label} ต้องขึ้นต้นด้วย ${prefixErrorText} เสมอ`,
           }));
           hasError = true;
           break;
         }
-        if (num.length > 14) {
+        if (num.length > reqConfig.length) {
           setErrors(prev => ({
             ...prev,
-            requestNumber: `${label} ต้องมี 14 หลักพอดี (ปัจจุบัน ${num.length} หลัก)`,
+            requestNumber: `${label} ต้องมี ${reqConfig.length} หลักพอดี (ปัจจุบัน ${num.length} หลัก)`,
           }));
           hasError = true;
           break;
@@ -277,33 +304,13 @@ export const DepositForm: React.FC<DepositFormProps> = ({
   };
 
   const handleRequestNumberBlur = () => {
-    const val = (formData.requestNumber || '').trim();
-    if (!val) {
+    const result = validateRequestNumber(formData.requestNumber, reqConfig);
+    if (!result.isValid && result.error) {
       setErrors(prev => ({
         ...prev,
-        requestNumber: 'กรุณากรอกเลขที่คำขอ',
+        requestNumber: result.error!,
       }));
       return;
-    }
-
-    const list = splitRequestNumbers(val);
-    for (let i = 0; i < list.length; i++) {
-      const num = list[i];
-      const label = list.length > 1 ? `เลขที่คำขอลำดับที่ ${i + 1} ` : 'เลขที่คำขอ';
-      if (!num.startsWith('691')) {
-        setErrors(prev => ({
-          ...prev,
-          requestNumber: `${label}ต้องขึ้นต้นด้วย "691" เสมอ`,
-        }));
-        return;
-      }
-      if (num.length !== 14) {
-        setErrors(prev => ({
-          ...prev,
-          requestNumber: `${label}ต้องมีจำนวน 14 หลักเท่านั้น (ปัจจุบันกรอก ${num.length} หลัก)`,
-        }));
-        return;
-      }
     }
 
     setErrors(prev => {
@@ -590,23 +597,10 @@ export const DepositForm: React.FC<DepositFormProps> = ({
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    // ตรวจสอบและบังคับให้เลขที่คำขอขึ้นต้นด้วย 691 และมี 14 หลักเสมอ
-    const reqList = splitRequestNumbers(formData.requestNumber);
-    if (reqList.length === 0) {
-      newErrors.requestNumber = 'กรุณากรอกเลขที่คำขอ (ต้องขึ้นต้นด้วย "691" จำนวน 14 หลักเสมอ)';
-    } else {
-      for (let i = 0; i < reqList.length; i++) {
-        const num = reqList[i];
-        const label = reqList.length > 1 ? `เลขที่คำขอลำดับที่ ${i + 1} ` : 'เลขที่คำขอ';
-        if (!num.startsWith('691')) {
-          newErrors.requestNumber = `${label}ต้องขึ้นต้นด้วย "691" เสมอ`;
-          break;
-        }
-        if (num.length !== 14) {
-          newErrors.requestNumber = `${label}ต้องมีจำนวน 14 หลักเท่านั้น (ปัจจุบัน ${num.length} หลัก)`;
-          break;
-        }
-      }
+    // ตรวจสอบเลขที่คำขอตามเงื่อนไขที่แอดมินตั้งค่าไว้ใน RequestNumberConfig
+    const reqValidation = validateRequestNumber(formData.requestNumber, reqConfig);
+    if (!reqValidation.isValid && reqValidation.error) {
+      newErrors.requestNumber = reqValidation.error;
     }
 
     if (!formData.receiptBook.trim()) newErrors.receiptBook = 'กรุณากรอกเล่มที่ใบเสร็จ';
@@ -938,7 +932,7 @@ export const DepositForm: React.FC<DepositFormProps> = ({
 
                   <div>
                     <span className="text-neutral-700 font-bold text-xs block mb-0.5">
-                      เลขที่คำขอ {splitRequestNumbers(formData.requestNumber).length > 1 ? `(${splitRequestNumbers(formData.requestNumber).length} เลข):` : '(14 หลัก):'}
+                      เลขที่คำขอ {splitRequestNumbers(formData.requestNumber).length > 1 ? `(${splitRequestNumbers(formData.requestNumber).length} เลข):` : `(${reqConfig.length} หลัก):`}
                     </span>
                     <strong className="font-mono font-black text-black bg-[#FEF08A] px-2 py-0.5 rounded border-2 border-black inline-block text-xs max-w-full truncate">
                       {formData.requestNumber || '-'}
@@ -1111,13 +1105,32 @@ export const DepositForm: React.FC<DepositFormProps> = ({
 
               {/* เลขที่คำขอ (รองรับทั้ง 1 เลข และคั่นด้วยเครื่องหมายจุลภาคหากมีหลายเลข) */}
               <div>
-                <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
-                  <label className="text-xs font-extrabold text-black">
-                    เลขที่คำขอ (Request No.) <span className="text-red-600 font-black">*</span>
-                  </label>
-                  <span className="text-[11px] text-neutral-700 font-bold">
-                    (หากมีหลายเลข ให้คั่นด้วยเครื่องหมายจุลภาค , )
-                  </span>
+                <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <label className="text-xs font-extrabold text-black">
+                      เลขที่คำขอ (Request No.) <span className="text-red-600 font-black">*</span>
+                    </label>
+                    <span className="text-[10.5px] font-black text-black bg-[#FEF08A] border border-black px-2 py-0.5 rounded">
+                      {formatRequestConfigSummary(reqConfig)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    {onOpenAdminRequestConfig && (
+                      <button
+                        type="button"
+                        onClick={onOpenAdminRequestConfig}
+                        title="สำหรับแอดมิน: กำหนดว่าจะให้กรอกเลขที่คำขอขึ้นต้นด้วยอะไร และมีกี่หลัก"
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#E9D5FF] hover:bg-[#D8B4FE] text-black border border-black text-[10.5px] font-black shadow-[1px_1px_0px_0px_#000000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition cursor-pointer"
+                      >
+                        <Settings2 className="w-3 h-3 stroke-[2.5]" />
+                        <span>ตั้งค่ารูปแบบ (แอดมิน)</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="text-[11px] text-neutral-700 font-bold mb-1.5">
+                  (หากมีหลายเลขคำขอ ให้พิมพ์คั่นด้วยเครื่องหมายจุลภาค <code className="font-mono font-black text-black">,</code>)
                 </div>
                 <div className="relative">
                   <input
@@ -1125,11 +1138,11 @@ export const DepositForm: React.FC<DepositFormProps> = ({
                     value={formData.requestNumber}
                     onChange={handleRequestNumberChange}
                     onBlur={handleRequestNumberBlur}
-                    placeholder="เช่น 69144008610001 หรือคั่นด้วยจุลภาคหากมีหลายเลขคำขอ"
+                    placeholder={`เช่น ${generateSampleRequestNumber(reqConfig, 1)} หรือคั่นด้วยจุลภาคหากมีหลายเลขคำขอ`}
                     className={`w-full px-3.5 py-2 text-sm rounded-lg border-2 border-black font-mono font-bold pr-24 shadow-[2px_2px_0px_0px_#000000] ${
                       errors.requestNumber 
                         ? 'bg-[#FECACA]' 
-                        : formData.requestNumber && splitRequestNumbers(formData.requestNumber).length > 0 && splitRequestNumbers(formData.requestNumber).every(n => n.length === 14 && n.startsWith('691'))
+                        : formData.requestNumber && splitRequestNumbers(formData.requestNumber).length > 0 && splitRequestNumbers(formData.requestNumber).every(n => isSingleRequestNumberCompleteAndValid(n, reqConfig))
                         ? 'bg-[#D1FAE5]'
                         : 'bg-white'
                     } focus:outline-none focus:bg-[#FFFBEB] focus:shadow-[4px_4px_0px_0px_#000000] transition-all`}
@@ -1141,14 +1154,14 @@ export const DepositForm: React.FC<DepositFormProps> = ({
                       </span>
                     ) : formData.requestNumber ? (
                       <span className={`${
-                        formData.requestNumber.length === 14 && formData.requestNumber.startsWith('691')
+                        isSingleRequestNumberCompleteAndValid(formData.requestNumber, reqConfig)
                           ? 'text-black font-black bg-[#6EE7B7] px-1.5 py-0.5 rounded border-2 border-black flex items-center gap-0.5'
-                          : formData.requestNumber && !formData.requestNumber.startsWith('691'.slice(0, Math.min(3, formData.requestNumber.length)))
+                          : formData.requestNumber && !isMatchingRequestPrefixWhileTyping(formData.requestNumber, reqConfig)
                           ? 'text-black font-black bg-[#FCA5A5] px-1.5 py-0.5 rounded border-2 border-black'
                           : 'text-black font-bold bg-[#F3F4F6] px-1.5 py-0.5 rounded border border-black'
                       }`}>
-                        {formData.requestNumber.length === 14 && formData.requestNumber.startsWith('691') && '✓ '}
-                        {formData.requestNumber.length}/14
+                        {isSingleRequestNumberCompleteAndValid(formData.requestNumber, reqConfig) && '✓ '}
+                        {reqConfig.enabled ? `${formData.requestNumber.length}/${reqConfig.length}` : `${formData.requestNumber.length} หลัก`}
                       </span>
                     ) : null}
                   </div>
@@ -1271,7 +1284,7 @@ export const DepositForm: React.FC<DepositFormProps> = ({
                       </p>
                       <div className="pl-1 pt-0.5">
                         <span className="inline-flex items-center gap-1.5 font-mono font-bold text-[11px] text-black bg-[#BFDBFE] px-2.5 py-1 rounded border-2 border-black">
-                          <span className="text-black font-sans text-[10.5px] font-black">ตัวอย่าง:</span> 69144008610001, 69144008610002
+                          <span className="text-black font-sans text-[10.5px] font-black">ตัวอย่าง:</span> {generateSampleRequestNumber(reqConfig, 1)}, {generateSampleRequestNumber(reqConfig, 2)}
                         </span>
                       </div>
                     </div>
@@ -1289,7 +1302,7 @@ export const DepositForm: React.FC<DepositFormProps> = ({
                           ในส่วน <strong>"3. ข้อมูลคนต่างด้าว"</strong> เมื่อท่านกดเพิ่มแรงงาน (คนที่ 1, คนที่ 2, ...)
                         </p>
                         <p>
-                          ในกล่องข้อมูลของแรงงานแต่ละคน จะมีช่อง <strong>"เลขที่คำขอ (สำหรับแรงงานคนนี้)"</strong> ให้ท่านสามารถพิมพ์ระบุเลข 14 หลักของคนนั้นๆ ได้โดยตรง
+                          ในกล่องข้อมูลของแรงงานแต่ละคน จะมีช่อง <strong>"เลขที่คำขอ (สำหรับแรงงานคนนี้)"</strong> ให้ท่านสามารถพิมพ์ระบุเลข {reqConfig.length} หลักของคนนั้นๆ ได้โดยตรง
                         </p>
                         <p className="text-[10.5px] text-black pt-0.5 font-extrabold flex items-center gap-1 bg-[#F3F4F6] p-2 rounded border-2 border-black">
                           <span className="text-black font-black">ℹ️ หมายเหตุ:</span>
@@ -1583,13 +1596,16 @@ export const DepositForm: React.FC<DepositFormProps> = ({
                         </div>
                         <input
                           type="text"
-                          maxLength={14}
+                          maxLength={reqConfig.enabled ? (reqConfig.length || 14) : 30}
                           value={worker.requestNumber !== undefined ? worker.requestNumber : (splitRequestNumbers(formData.requestNumber)[idx] || '')}
                           onChange={(e) => {
-                            const clean = e.target.value.replace(/\D/g, '').slice(0, 14);
+                            const maxLen = reqConfig.enabled ? (reqConfig.length || 14) : 30;
+                            const clean = reqConfig.allowAlphanumeric
+                              ? e.target.value.toUpperCase().replace(/[^A-Z0-9\-]/g, '').slice(0, maxLen)
+                              : e.target.value.replace(/\D/g, '').slice(0, maxLen);
                             handleWorkerChange(idx, 'requestNumber', clean);
                           }}
-                          placeholder={splitRequestNumbers(formData.requestNumber)[idx] || splitRequestNumbers(formData.requestNumber)[0] || '14 หลัก (ต้องขึ้นต้นด้วย 691 เสมอ)'}
+                          placeholder={splitRequestNumbers(formData.requestNumber)[idx] || splitRequestNumbers(formData.requestNumber)[0] || formatRequestConfigSummary(reqConfig)}
                           className="w-full px-3 py-1.5 text-xs rounded-lg border-2 border-black bg-white font-mono font-bold shadow-[2px_2px_0px_0px_#000000] focus:outline-none focus:bg-[#FFFBEB] focus:shadow-[3px_3px_0px_0px_#000000] transition"
                         />
                       </div>

@@ -1,16 +1,141 @@
 @import "tailwindcss";
 
+:root {
+  --theme-bg-canvas: #FFFDF7;
+  --theme-bg-surface: #FAF7F0;
+  --theme-bg-card: #FFFFFF;
+  --theme-border-color: #000000;
+  --theme-shadow-color: #000000;
+  --theme-primary: #FFE500;
+  --theme-primary-soft: #FEF08A;
+  --theme-secondary: #6EE7B7;
+  --theme-secondary-soft: #D1FAE5;
+  --theme-info: #60A5FA;
+  --theme-info-soft: #BFDBFE;
+  --theme-accent-purple: #E9D5FF;
+  --theme-danger: #FF6B6B;
+}
+
 @layer base {
   body {
     font-family: 'Prompt', 'Sarabun', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background-color: #FFFDF7;
-    background-image: radial-gradient(#00000018 1.25px, transparent 1.25px);
+    background-color: var(--theme-bg-canvas);
+    background-image: radial-gradient(color-mix(in srgb, var(--theme-border-color) 12%, transparent) 1.25px, transparent 1.25px);
     background-size: 20px 20px;
-    color: #000000;
+    color: #0F172A;
+    transition: background-color 0.25s ease, color 0.2s ease;
   }
 
   .font-mono {
     font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Background Pattern Variations */
+html[data-bg-pattern="grid"] body {
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--theme-border-color) 8%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--theme-border-color) 8%, transparent) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+html[data-bg-pattern="solid"] body {
+  background-image: none;
+}
+
+/* Dynamic Theme Surface & Accent Mapping (active when not default neo-brutalism) */
+html:not([data-ui-theme="neo-brutalism"]) {
+  & .bg-\[\#FFFDF7\],
+  & .bg-\[\#FAF7F0\] {
+    background-color: var(--theme-bg-surface) !important;
+  }
+
+  & .bg-\[\#FFE500\] {
+    background-color: var(--theme-primary) !important;
+  }
+
+  & .bg-\[\#FEF08A\],
+  & .bg-\[\#FDE68A\],
+  & .bg-\[\#FEF3C7\] {
+    background-color: var(--theme-primary-soft) !important;
+  }
+
+  & .bg-\[\#6EE7B7\] {
+    background-color: var(--theme-secondary) !important;
+  }
+
+  & .bg-\[\#D1FAE5\] {
+    background-color: var(--theme-secondary-soft) !important;
+  }
+
+  & .bg-\[\#60A5FA\] {
+    background-color: var(--theme-info) !important;
+  }
+
+  & .bg-\[\#BFDBFE\] {
+    background-color: var(--theme-info-soft) !important;
+  }
+
+  & .bg-\[\#E9D5FF\],
+  & .bg-\[\#F3E8FF\] {
+    background-color: var(--theme-accent-purple) !important;
+  }
+
+  & .border-black {
+    border-color: var(--theme-border-color) !important;
+  }
+}
+
+/* Shadow & Border Style Variations */
+html[data-shadow-style="soft"] {
+  & [class*="shadow-["] {
+    box-shadow: 0 4px 14px -2px color-mix(in srgb, var(--theme-shadow-color) 14%, transparent),
+                0 2px 6px -1px color-mix(in srgb, var(--theme-shadow-color) 8%, transparent) !important;
+  }
+}
+
+html[data-shadow-style="flat"] {
+  & [class*="shadow-["] {
+    box-shadow: none !important;
+  }
+}
+
+html[data-shadow-style="brutalist"]:not([data-ui-theme="neo-brutalism"]) {
+  & [class*="shadow-\[2px_2px"] {
+    box-shadow: 2px 2px 0px 0px var(--theme-shadow-color) !important;
+  }
+  & [class*="shadow-\[3px_3px"] {
+    box-shadow: 3px 3px 0px 0px var(--theme-shadow-color) !important;
+  }
+  & [class*="shadow-\[4px_4px"] {
+    box-shadow: 4px 4px 0px 0px var(--theme-shadow-color) !important;
+  }
+  & [class*="shadow-\[5px_5px"],
+  & [class*="shadow-\[6px_6px"],
+  & [class*="shadow-\[8px_8px"],
+  & [class*="shadow-\[10px_10px"] {
+    box-shadow: 5px 5px 0px 0px var(--theme-shadow-color) !important;
+  }
+}
+
+/* Corner Radius Variations */
+html[data-radius-scale="sharp"] {
+  & .rounded-2xl,
+  & .rounded-xl,
+  & .rounded-lg {
+    border-radius: 4px !important;
+  }
+}
+
+html[data-radius-scale="rounded"] {
+  & .rounded-2xl {
+    border-radius: 24px !important;
+  }
+  & .rounded-xl {
+    border-radius: 18px !important;
+  }
+  & .rounded-lg {
+    border-radius: 12px !important;
   }
 }
 

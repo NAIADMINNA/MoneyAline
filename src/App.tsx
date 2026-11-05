@@ -22,6 +22,13 @@ import { GoogleSheetsBar } from './components/GoogleSheetsBar';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { WebhookPasswordModal } from './components/WebhookPasswordModal';
 import { RobotHelpWidget } from './components/RobotHelpWidget';
+import { ThemeGalleryModal } from './components/ThemeGalleryModal';
+import {
+  UIThemeConfig,
+  getSavedUIThemeConfig,
+  saveAndApplyUIThemeConfig,
+  applyUIThemeToDOM,
+} from './utils/themeConfig';
 import { initAuth, googleSignIn, logoutGoogle, getSavedAccessToken, getSavedUser } from './services/googleAuth';
 import { 
   appendRecordToSheet, 
@@ -43,9 +50,64 @@ import {
 } from './utils/usageStats';
 
 const STORAGE_KEY = 'doe_foreign_worker_deposits_v2';
+const MAX_LOCAL_CACHE_RECORDS = 300;
+
+/**
+ * บันทึกข้อมูลแคชลง localStorage อย่างปลอดภัย ป้องกันปัญหา QuotaExceededError (5MB limit ของเบราว์เซอร์)
+ * โดยเก็บรายการที่ยังไม่ได้ซิงค์ลง Sheet ทั้งหมด และเก็บรายการล่าสุดไม่เกินโควตาของเบราว์เซอร์
+ * (ส่วนข้อมูลทั้งหมดจาก Google Sheet จะยังคงอยู่ใน Memory State ครบ 100% สำหรับคำนวณสถิติและส่งออกไฟล์)
+ */
+function saveRecordsToStorageSafely(records: DepositRecord[]): void {
+  try {
+    localStorage.removeItem('doe_foreign_worker_deposits_v1');
+  } catch {
+    // ignore
+  }
+
+  // แยกรายการที่ยังไม่ได้ส่งเข้า Sheet (ต้องรักษาไว้เสมอ) และรายการที่ซิงค์แล้ว
+  const unsynced = records.filter(r => !r.syncedToSheet && !String(r.id || '').startsWith('sheet-rec-'));
+  const synced = records.filter(r => r.syncedToSheet || String(r.id || '').startsWith('sheet-rec-'));
+
+  // ลองบันทึกตามลำดับขนาด เพื่อให้ไม่เกินโควตา ~5MB ของ localStorage
+  const candidateLimits = [MAX_LOCAL_CACHE_RECORDS, 150, 50, 0];
+
+  for (const limit of candidateLimits) {
+    try {
+      const subset = [...unsynced, ...synced.slice(0, limit)];
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(subset));
+      return;
+    } catch {
+      // หากยังเกินโควตา ให้ลดจำนวนแคชลงในรอบถัดไป
+    }
+  }
+
+  // กรณีพื้นที่เต็มจริงๆ ให้ล้างแคชเก่าแล้วเก็บเฉพาะรายการที่ยังไม่ซิงค์แบบย่อ
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    if (unsynced.length > 0) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(unsynced.slice(0, 30)));
+    }
+  } catch {
+    // ignore quota error
+  }
+}
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'form' | 'ledger' | 'stats'>('form');
+  const [uiThemeConfig, setUiThemeConfig] = useState<UIThemeConfig>(() => getSavedUIThemeConfig());
+  const [showThemeModal, setShowThemeModal] = useState(false);
+
+  useEffect(() => {
+    applyUIThemeToDOM(uiThemeConfig);
+  }, [uiThemeConfig]);
+
+  const handleUpdateThemeConfig = (newConfig: UIThemeConfig, notifyMsg?: string) => {
+    setUiThemeConfig(newConfig);
+    saveAndApplyUIThemeConfig(newConfig);
+    if (notifyMsg) {
+      showToast(notifyMsg);
+    }
+  };
   const [records, setRecords] = useState<DepositRecord[]>(() => {
     try {
       const sanitizeRecords = (list: DepositRecord[]): DepositRecord[] =>
@@ -68,7 +130,7 @@ export default function App() {
         const parsed = JSON.parse(savedV2);
         if (Array.isArray(parsed)) {
           const cleaned = sanitizeRecords(parsed);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
+          saveRecordsToStorageSafely(cleaned);
           return cleaned;
         }
       }
@@ -79,13 +141,12 @@ export default function App() {
         const parsed = JSON.parse(savedV1);
         if (Array.isArray(parsed)) {
           const cleaned = sanitizeRecords(parsed);
-          localStorage.removeItem('doe_foreign_worker_deposits_v1');
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
+          saveRecordsToStorageSafely(cleaned);
           return cleaned;
         }
       }
-    } catch (e) {
-      console.error('Failed to load records from storage', e);
+    } catch {
+      // ignore corrupted or full storage on init
     }
     return [];
   });
@@ -242,13 +303,9 @@ export default function App() {
     }
   };
 
-  // Sync with localStorage
+  // Sync with localStorage safely without exceeding browser storage quota
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
-    } catch (e) {
-      console.error('Failed to save records', e);
-    }
+    saveRecordsToStorageSafely(records);
   }, [records]);
 
   const showToast = (msg: string) => {
@@ -585,7 +642,7 @@ export default function App() {
 
             <button
               onClick={() => setActiveTab('stats')}
-              className={`flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-extrabold rounded-lg border-2 transition-all duration-150 cursor-pointer ${
+              className={`flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-extrabold rounded-lg border-2 transition-all duration-150 cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === 'stats'
                   ? 'bg-[#6EE7B7] text-black border-black shadow-[2px_2px_0px_0px_#000000] -translate-x-0.5 -translate-y-0.5'
                   : 'bg-white text-neutral-800 border-transparent hover:border-black hover:bg-neutral-100 active:translate-x-[1px] active:translate-y-[1px]'
@@ -680,6 +737,9 @@ export default function App() {
           syncCountdown={syncCountdown}
           isAutoSyncing={isAutoSyncing}
           onClearAllRecords={handleClearAllRecords}
+          uiThemeConfig={uiThemeConfig}
+          onSelectThemeConfig={handleUpdateThemeConfig}
+          onOpenThemeGallery={() => setShowThemeModal(true)}
         />
 
         {activeTab === 'form' && (
@@ -689,6 +749,13 @@ export default function App() {
               isGoogleConnected={!!accessToken}
               onConnectGoogle={() => handleGoogleLogin(false)}
               hasWebhook={!!getAppsScriptUrl()}
+              onOpenAdminRequestConfig={() => {
+                if (isAdminUnlocked) {
+                  setShowWebhookModal(true);
+                } else {
+                  setShowPasswordModal(true);
+                }
+              }}
             />
           </div>
         )}
@@ -742,6 +809,14 @@ export default function App() {
           </div>
         )}
       </main>
+
+      {/* UI Design Themes Gallery Modal */}
+      <ThemeGalleryModal
+        isOpen={showThemeModal}
+        onClose={() => setShowThemeModal(false)}
+        currentConfig={uiThemeConfig}
+        onSelectConfig={handleUpdateThemeConfig}
+      />
 
       {/* Official Receipt Modal */}
       {selectedReceipt && (

@@ -18,7 +18,8 @@ import {
   EyeOff,
   RotateCcw,
   Hash,
-  Sparkles
+  Sparkles,
+  Palette
 } from 'lucide-react';
 import { User } from 'firebase/auth';
 import { CURRENT_APP_VERSION, broadcastAppUpdate } from '../utils/versionCheck';
@@ -39,10 +40,17 @@ import {
   getRequestNumberConfig, 
   saveRequestNumberConfig, 
   generateSampleRequestNumber, 
+  formatRequestConfigSummary,
+  parseAllowedPrefixes,
   RequestNumberConfig, 
   DEFAULT_REQUEST_CONFIG 
 } from '../utils/requestNumberConfig';
 import { exportDatabaseToCSV } from '../utils/csvDatabaseExport';
+import {
+  UI_THEME_PRESETS,
+  UIThemeConfig,
+  getUIThemePreset,
+} from '../utils/themeConfig';
 
 interface GoogleSheetsBarProps {
   user: User | null;
@@ -62,6 +70,9 @@ interface GoogleSheetsBarProps {
   syncCountdown?: number;
   isAutoSyncing?: boolean;
   onClearAllRecords?: () => void;
+  uiThemeConfig?: UIThemeConfig;
+  onSelectThemeConfig?: (newConfig: UIThemeConfig, notifyMsg?: string) => void;
+  onOpenThemeGallery?: () => void;
 }
 
 export const GoogleSheetsBar: React.FC<GoogleSheetsBarProps> = ({
@@ -82,6 +93,9 @@ export const GoogleSheetsBar: React.FC<GoogleSheetsBarProps> = ({
   syncCountdown = 20,
   isAutoSyncing = false,
   onClearAllRecords,
+  uiThemeConfig,
+  onSelectThemeConfig,
+  onOpenThemeGallery,
 }) => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [isPulling, setIsPulling] = useState(false);
@@ -106,6 +120,7 @@ export const GoogleSheetsBar: React.FC<GoogleSheetsBarProps> = ({
   const [inputPrefix, setInputPrefix] = useState(reqConfig.prefix);
   const [inputLength, setInputLength] = useState<number | string>(reqConfig.length);
   const [inputEnabled, setInputEnabled] = useState(reqConfig.enabled);
+  const [inputAllowAlphanumeric, setInputAllowAlphanumeric] = useState<boolean>(Boolean(reqConfig.allowAlphanumeric));
 
   useEffect(() => {
     if (showWebhookModal) {
@@ -114,6 +129,7 @@ export const GoogleSheetsBar: React.FC<GoogleSheetsBarProps> = ({
       setInputPrefix(current.prefix);
       setInputLength(current.length);
       setInputEnabled(current.enabled);
+      setInputAllowAlphanumeric(Boolean(current.allowAlphanumeric));
     }
   }, [showWebhookModal]);
 
@@ -121,6 +137,7 @@ export const GoogleSheetsBar: React.FC<GoogleSheetsBarProps> = ({
     setInputPrefix(DEFAULT_REQUEST_CONFIG.prefix);
     setInputLength(DEFAULT_REQUEST_CONFIG.length);
     setInputEnabled(DEFAULT_REQUEST_CONFIG.enabled);
+    setInputAllowAlphanumeric(Boolean(DEFAULT_REQUEST_CONFIG.allowAlphanumeric));
   };
 
   useEffect(() => {
@@ -216,6 +233,27 @@ function doPost(e) {
     onNotify('คัดลอกโค้ด Google Apps Script แล้ว นำไปวางในสเปรดชีตได้เลย');
   };
 
+  const buildFinalRequestConfig = (): RequestNumberConfig => {
+    const parsedLength = Number(inputLength);
+    const validLength = isNaN(parsedLength) || parsedLength <= 0 ? DEFAULT_REQUEST_CONFIG.length : parsedLength;
+    const cleanPrefix = (inputPrefix || '').trim();
+    const prefixes = parseAllowedPrefixes(cleanPrefix);
+    const maxPrefixLen = prefixes.length > 0 ? Math.max(...prefixes.map(p => p.length)) : 1;
+    return {
+      prefix: cleanPrefix,
+      length: Math.max(maxPrefixLen, validLength),
+      enabled: inputEnabled,
+      allowAlphanumeric: inputAllowAlphanumeric,
+    };
+  };
+
+  const handleSaveRequestConfigOnly = () => {
+    const finalConfig = buildFinalRequestConfig();
+    saveRequestNumberConfig(finalConfig);
+    setReqConfig(finalConfig);
+    onNotify(`บันทึกเงื่อนไขเลขที่คำขอเรียบร้อยแล้ว (${formatRequestConfigSummary(finalConfig)})`);
+  };
+
   const handleSaveWebhook = () => {
     const trimmed = inputUrl.trim();
     setAppsScriptUrl(trimmed || null);
@@ -223,22 +261,15 @@ function doPost(e) {
     if (onWebhookChange) onWebhookChange(trimmed || null);
 
     // บันทึกการกำหนดเงื่อนไขเลขที่คำขอ (Request Number Format Configuration)
-    const parsedLength = Number(inputLength);
-    const validLength = isNaN(parsedLength) || parsedLength <= 0 ? DEFAULT_REQUEST_CONFIG.length : parsedLength;
-    const cleanPrefix = (inputPrefix || '').trim() || DEFAULT_REQUEST_CONFIG.prefix;
-    const finalConfig: RequestNumberConfig = {
-      prefix: cleanPrefix,
-      length: Math.max(cleanPrefix.length, validLength),
-      enabled: inputEnabled,
-    };
+    const finalConfig = buildFinalRequestConfig();
     saveRequestNumberConfig(finalConfig);
     setReqConfig(finalConfig);
 
     setShowWebhookModal(false);
     if (trimmed) {
-      onNotify(`บันทึกการตั้งค่า Webhook และกำหนดเลขที่คำขอ (ขึ้นต้นด้วย "${finalConfig.prefix}" จำนวน ${finalConfig.length} หลัก) เรียบร้อยแล้ว!`);
+      onNotify(`บันทึกการตั้งค่า Webhook และกำหนดเลขที่คำขอ (${formatRequestConfigSummary(finalConfig)}) เรียบร้อยแล้ว!`);
     } else {
-      onNotify(`บันทึกการกำหนดเลขที่คำขอ (ขึ้นต้นด้วย "${finalConfig.prefix}" จำนวน ${finalConfig.length} หลัก) เรียบร้อยแล้ว`);
+      onNotify(`บันทึกการกำหนดเลขที่คำขอ (${formatRequestConfigSummary(finalConfig)}) เรียบร้อยแล้ว`);
     }
   };
 
@@ -465,6 +496,19 @@ function doPost(e) {
             <Settings2 className="w-3.5 h-3.5 text-black" />
             <span>{webhookUrl ? 'จัดการ Webhook' : 'ให้ทุกคนบันทึกได้ไม่ต้องล็อกอิน'}</span>
           </button>
+
+          {/* ปุ่มเปลี่ยนธีม / คลังธีมดีไซน์ (แสดงเมื่อปลดล็อกแอดมินแล้ว) */}
+          {onOpenThemeGallery && (
+            <button
+              type="button"
+              onClick={onOpenThemeGallery}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-black bg-[#FFE500] hover:bg-[#FDE047] text-black text-xs font-black shadow-[3px_3px_0px_0px_#000000] hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all cursor-pointer"
+              title="เปิดคลังธีมดีไซน์ (UI Design Themes Gallery)"
+            >
+              <Palette className="w-3.5 h-3.5 text-black" />
+              <span>เปลี่ยนธีม</span>
+            </button>
+          )}
 
           {accessToken ? (
             <>
@@ -698,94 +742,194 @@ function doPost(e) {
                 </div>
               </div>
 
-              {/* กำหนดสิทธิ์รูปแบบเลขที่คำขอ: ขึ้นต้นแบบไหน และจำนวนกี่หลัก */}
-              <div className="bg-[#FEF3C7] border-2 border-black rounded-xl p-3.5 space-y-3 shadow-[4px_4px_0px_0px_#000000]">
-                <div className="flex items-center justify-between">
-                  <div className="text-xs font-black text-black flex items-center gap-1.5">
-                    <Hash className="w-4 h-4 text-black shrink-0" />
-                    <span>กำหนดสิทธิ์รูปแบบเลขที่คำขอ (Request Number Settings)</span>
+              {/* กำหนดสิทธิ์รูปแบบเลขที่คำขอ: ขึ้นต้นแบบไหน และจำนวนกี่หลัก (สำหรับแอดมิน) */}
+              <div className="bg-[#FEF3C7] border-3 border-black rounded-xl p-4 space-y-3.5 shadow-[5px_5px_0px_0px_#000000]">
+                <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b-2 border-black">
+                  <div className="text-xs sm:text-sm font-black text-black flex items-center gap-2">
+                    <span className="w-7 h-7 rounded-lg bg-[#FFE500] border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_0px_#000000]">
+                      <Hash className="w-4 h-4 text-black shrink-0 stroke-[2.5]" />
+                    </span>
+                    <span>ตั้งค่ารูปแบบเลขที่คำขอ (Request No.) สำหรับแอดมิน</span>
                   </div>
-                  <span className="text-[10px] font-black text-black bg-[#FFE500] px-2 py-0.5 rounded border-2 border-black">
-                    {inputEnabled ? 'เปิดการบังคับตรวจสอบ' : 'ปิดการบังคับตรวจ'}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[10px] font-black text-black px-2.5 py-0.5 rounded border-2 border-black shadow-[2px_2px_0px_0px_#000000] ${
+                      inputEnabled ? 'bg-[#6EE7B7]' : 'bg-white'
+                    }`}>
+                      {inputEnabled ? '✓ เปิดบังคับตรวจสอบ' : 'ปิดการบังคับตรวจ'}
+                    </span>
+                  </div>
                 </div>
 
-                <div className="text-[11px] text-black font-bold leading-relaxed">
-                  กำหนดตัวเลขคำขอว่าต้องขึ้นต้นด้วยรูปแบบใด และเป็นตัวเลขจำนวนกี่หลัก เพื่อป้องกันเจ้าหน้าที่คีย์ข้อมูลผิดพลาด
+                <div className="text-[11px] text-black font-bold leading-relaxed bg-white p-2.5 rounded-lg border-2 border-black">
+                  แอดมินสามารถกำหนดได้ว่าช่อง <strong>"เลขที่คำขอ (Request No.) *"</strong> จะให้ผู้ใช้งานกรอกขึ้นต้นด้วยรหัส/ตัวเลขอะไร (ระบุได้มากกว่า 1 รหัสโดยคั่นด้วยเครื่องหมายจุลภาค <code>,</code> เช่น <code>691, 692, 681</code>) และต้องมีจำนวนกี่หลัก:
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-0.5">
                   {/* ตัวเลขคำขอขึ้นต้น */}
-                  <div>
-                    <label className="block text-[11px] font-black text-black mb-1">
-                      ตัวเลขคำขอต้องขึ้นต้นด้วย (Prefix):
+                  <div className="space-y-1.5">
+                    <label className="block text-[11px] font-black text-black">
+                      1. กำหนดรหัส/ตัวเลขที่ต้องขึ้นต้นด้วย (Prefix):
                     </label>
                     <input
                       type="text"
                       value={inputPrefix}
-                      onChange={(e) => setInputPrefix(e.target.value.replace(/\D/g, ''))}
-                      placeholder="เช่น 691"
-                      className="w-full px-3 py-1.5 bg-white border-2 border-black rounded-lg text-xs font-mono font-black text-black focus:outline-hidden shadow-[2px_2px_0px_0px_#000000]"
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        const cleaned = inputAllowAlphanumeric
+                          ? raw.toUpperCase().replace(/[^A-Z0-9,\-\s]/g, '')
+                          : raw.replace(/[^\d,\s]/g, '');
+                        setInputPrefix(cleaned);
+                      }}
+                      placeholder="เช่น 691 หรือ 691, 692 (เว้นว่าง = ขึ้นต้นด้วยอะไรก็ได้)"
+                      className="w-full px-3 py-2 bg-white border-2 border-black rounded-lg text-xs font-mono font-black text-black focus:outline-hidden focus:bg-[#FFFBEB] shadow-[2px_2px_0px_0px_#000000]"
                     />
-                    <span className="text-[10px] text-slate-800 font-bold mt-1 block">
-                      ค่าเริ่มต้นคือ <strong>691</strong> (ระบุเฉพาะตัวเลข)
-                    </span>
+                    {/* ปุ่มลัดเลือก Prefix ยอดนิยม */}
+                    <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                      <span className="text-[10px] font-extrabold text-slate-700">เลือกด่วน:</span>
+                      {[
+                        { label: '691 (ค่าเริ่มต้น)', val: '691' },
+                        { label: '691, 692', val: '691, 692' },
+                        { label: '681, 691', val: '681, 691' },
+                        { label: '69', val: '69' },
+                        { label: 'ไม่บังคับตัวขึ้นต้น', val: '' },
+                      ].map((preset) => (
+                        <button
+                          key={preset.label}
+                          type="button"
+                          onClick={() => setInputPrefix(preset.val)}
+                          className={`px-2 py-0.5 rounded border border-black text-[10px] font-black transition cursor-pointer ${
+                            inputPrefix.trim() === preset.val
+                              ? 'bg-[#FFE500] text-black shadow-[1px_1px_0px_0px_#000000]'
+                              : 'bg-white hover:bg-[#FEF08A] text-black'
+                          }`}
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   {/* จำนวนหลักทั้งหมด */}
-                  <div>
-                    <label className="block text-[11px] font-black text-black mb-1">
-                      จำนวนหลักทั้งหมด (Total Digits):
+                  <div className="space-y-1.5">
+                    <label className="block text-[11px] font-black text-black">
+                      2. จำนวนหลักทั้งหมด (Total Digits):
                     </label>
                     <input
                       type="number"
-                      min={Math.max(1, inputPrefix.length)}
+                      min={1}
                       max={30}
                       value={inputLength}
                       onChange={(e) => setInputLength(Number(e.target.value) || '')}
                       placeholder="เช่น 14"
-                      className="w-full px-3 py-1.5 bg-white border-2 border-black rounded-lg text-xs font-mono font-black text-black focus:outline-hidden shadow-[2px_2px_0px_0px_#000000]"
+                      className="w-full px-3 py-2 bg-white border-2 border-black rounded-lg text-xs font-mono font-black text-black focus:outline-hidden focus:bg-[#FFFBEB] shadow-[2px_2px_0px_0px_#000000]"
                     />
-                    <span className="text-[10px] text-slate-800 font-bold mt-1 block">
-                      ค่าเริ่มต้นคือ <strong>14</strong> หลัก
-                    </span>
+                    {/* ปุ่มลัดเลือกจำนวนหลัก */}
+                    <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                      <span className="text-[10px] font-extrabold text-slate-700">จำนวนหลัก:</span>
+                      {[10, 12, 13, 14, 15].map((len) => (
+                        <button
+                          key={len}
+                          type="button"
+                          onClick={() => setInputLength(len)}
+                          className={`px-2 py-0.5 rounded border border-black text-[10px] font-mono font-black transition cursor-pointer ${
+                            Number(inputLength) === len
+                              ? 'bg-[#FFE500] text-black shadow-[1px_1px_0px_0px_#000000]'
+                              : 'bg-white hover:bg-[#FEF08A] text-black'
+                          }`}
+                        >
+                          {len} หลัก
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
+                {/* รูปแบบอักขระที่อนุญาต */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInputAllowAlphanumeric(false);
+                      setInputPrefix((prev) => prev.replace(/[^\d,\s]/g, ''));
+                    }}
+                    className={`p-2.5 rounded-lg border-2 border-black text-left transition cursor-pointer flex items-center justify-between ${
+                      !inputAllowAlphanumeric
+                        ? 'bg-[#6EE7B7] shadow-[2px_2px_0px_0px_#000000]'
+                        : 'bg-white hover:bg-neutral-100'
+                    }`}
+                  >
+                    <div>
+                      <div className="text-[11px] font-black text-black">เฉพาะตัวเลข 0-9 เท่านั้น</div>
+                      <div className="text-[10px] font-bold text-slate-800">เช่น 69144008610001</div>
+                    </div>
+                    {!inputAllowAlphanumeric && <Check className="w-4 h-4 text-black stroke-[3]" />}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setInputAllowAlphanumeric(true)}
+                    className={`p-2.5 rounded-lg border-2 border-black text-left transition cursor-pointer flex items-center justify-between ${
+                      inputAllowAlphanumeric
+                        ? 'bg-[#6EE7B7] shadow-[2px_2px_0px_0px_#000000]'
+                        : 'bg-white hover:bg-neutral-100'
+                    }`}
+                  >
+                    <div>
+                      <div className="text-[11px] font-black text-black">ตัวอักษร + ตัวเลข + ขีด (-)</div>
+                      <div className="text-[10px] font-bold text-slate-800">เช่น WP-6910001 หรือ 69-09-0006</div>
+                    </div>
+                    {inputAllowAlphanumeric && <Check className="w-4 h-4 text-black stroke-[3]" />}
+                  </button>
+                </div>
+
                 {/* แถบตัวอย่าง Preview & Action */}
-                <div className="bg-white border-2 border-black rounded-lg p-2.5 flex items-center justify-between flex-wrap gap-2 text-xs">
+                <div className="bg-white border-2 border-black rounded-lg p-3 flex items-center justify-between flex-wrap gap-2 text-xs shadow-[2px_2px_0px_0px_#000000]">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[11px] text-black font-black">ตัวอย่างเลขคำขอ:</span>
-                    <span className="font-mono font-black px-2 py-0.5 rounded text-[13px] bg-[#FFE500] text-[#d71b0c] border-2 border-black shadow-[2px_2px_0px_0px_#000000]">
+                    <span className="text-[11px] text-black font-black">ตัวอย่างเลขคำขอที่กรอกได้:</span>
+                    <span className="font-mono font-black px-2.5 py-0.5 rounded text-[13px] bg-[#FFE500] text-black border-2 border-black shadow-[2px_2px_0px_0px_#000000]">
                       {generateSampleRequestNumber({
-                        prefix: inputPrefix || '691',
+                        prefix: inputPrefix,
                         length: Number(inputLength) || 14,
                         enabled: inputEnabled,
+                        allowAlphanumeric: inputAllowAlphanumeric,
                       })}
                     </span>
-                    <span className="text-[11px] text-black font-mono font-bold">
-                      ({Number(inputLength) || 14} หลัก)
+                    <span className="text-[11px] text-black font-bold">
+                      ({formatRequestConfigSummary({
+                        prefix: inputPrefix,
+                        length: Number(inputLength) || 14,
+                        enabled: inputEnabled,
+                        allowAlphanumeric: inputAllowAlphanumeric,
+                      })})
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <label className="inline-flex items-center gap-1.5 text-[11px] text-black font-black cursor-pointer">
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <label className="inline-flex items-center gap-1.5 text-[11px] text-black font-black cursor-pointer bg-[#F3F4F6] px-2 py-1 rounded border border-black">
                       <input
                         type="checkbox"
                         checked={inputEnabled}
                         onChange={(e) => setInputEnabled(e.target.checked)}
                         className="rounded border-2 border-black text-black focus:ring-0"
                       />
-                      <span>บังคับตรวจ</span>
+                      <span>บังคับตรวจเงื่อนไขนี้</span>
                     </label>
 
                     <button
                       type="button"
                       onClick={handleResetReqConfig}
-                      className="text-[11px] text-black hover:underline font-black cursor-pointer"
+                      className="text-[11px] text-black hover:underline font-black cursor-pointer px-1.5 py-1"
                       title="คืนค่าเป็นขึ้นต้น 691 จำนวน 14 หลัก"
                     >
                       คืนค่าเริ่มต้น (691/14)
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleSaveRequestConfigOnly}
+                      className="px-3 py-1 rounded-lg bg-[#60A5FA] hover:bg-[#3B82F6] text-black border-2 border-black text-[11px] font-black shadow-[2px_2px_0px_0px_#000000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition cursor-pointer"
+                    >
+                      ใช้รูปแบบเลขคำขอนี้ทันที
                     </button>
                   </div>
                 </div>
@@ -868,6 +1012,96 @@ function doPost(e) {
                   </button>
                 </div>
               </div>
+
+              {/* คลังธีมดีไซน์ (UI Design Themes Gallery) & ปุ่มเปลี่ยนธีม ภายในหน้าจัดการ Webhook */}
+              {uiThemeConfig && onSelectThemeConfig && (
+                <div className="bg-[#F3E8FF] border-3 border-black rounded-xl p-4 space-y-3 shadow-[5px_5px_0px_0px_#000000]">
+                  <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b-2 border-black">
+                    <div className="text-xs sm:text-sm font-black text-black flex items-center gap-2">
+                      <span className="w-7 h-7 rounded-lg bg-[#FFE500] border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_0px_#000000]">
+                        <Palette className="w-4 h-4 text-black shrink-0 stroke-[2.5]" />
+                      </span>
+                      <span>คลังธีมดีไซน์ (UI Design Themes Gallery)</span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black text-black bg-white px-2.5 py-0.5 rounded border-2 border-black shadow-[2px_2px_0px_0px_#000000]">
+                        ธีมปัจจุบัน: {getUIThemePreset(uiThemeConfig.themeId).nameTh}
+                      </span>
+                      {onOpenThemeGallery && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onOpenThemeGallery();
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border-2 border-black bg-[#FFE500] hover:bg-[#FDE047] text-black text-xs font-black shadow-[2px_2px_0px_0px_#000000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition cursor-pointer"
+                          title="เปิดหน้าต่างคลังธีมดีไซน์แบบเต็ม (ดูตัวอย่างและปรับแต่งเงา/พื้นหลัง)"
+                        >
+                          <Palette className="w-3.5 h-3.5 text-black stroke-[2.5]" />
+                          <span>เปลี่ยนธีม (เปิดคลังธีมดีไซน์)</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="text-[11px] text-slate-900 font-bold leading-relaxed">
+                    สามารถกดเลือกธีมด้านล่างเพื่อเปลี่ยนโทนสีทันที หรือกดปุ่ม <strong>"เปลี่ยนธีม (เปิดคลังธีมดีไซน์)"</strong> เพื่อดูภาพจำลองตัวอย่างและปรับแต่งสไตล์กรอบเงา/พื้นหลังเพิ่มเติม:
+                  </div>
+
+                  {/* Quick Theme Selector Grid inside Webhook Modal */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-0.5">
+                    {UI_THEME_PRESETS.map((preset) => {
+                      const isSelected = uiThemeConfig.themeId === preset.id;
+                      return (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() =>
+                            onSelectThemeConfig(
+                              {
+                                themeId: preset.id,
+                                shadowStyle: preset.defaultShadow,
+                                bgPattern: preset.defaultPattern,
+                                radiusScale: preset.defaultRadius,
+                              },
+                              `เปลี่ยนธีมเป็น "${preset.nameTh}" เรียบร้อยแล้ว`
+                            )
+                          }
+                          className={`p-2 rounded-lg border-2 border-black text-left transition cursor-pointer flex flex-col justify-between gap-1.5 ${
+                            isSelected
+                              ? 'bg-[#FFE500] shadow-[3px_3px_0px_0px_#000000] -translate-x-0.5 -translate-y-0.5'
+                              : 'bg-white hover:bg-neutral-100 shadow-[1px_1px_0px_0px_#000000]'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="text-[11px] font-black text-black truncate">
+                              {preset.nameTh}
+                            </span>
+                            {isSelected && <Check className="w-3.5 h-3.5 text-black shrink-0 stroke-[3]" />}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {[
+                              preset.colors.bgCanvas,
+                              preset.colors.primary,
+                              preset.colors.secondary,
+                              preset.colors.info,
+                            ].map((hex, i) => (
+                              <span
+                                key={i}
+                                style={{
+                                  backgroundColor: hex,
+                                  borderColor: preset.colors.borderColor,
+                                }}
+                                className="w-3.5 h-3.5 rounded-full border inline-block"
+                              />
+                            ))}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* ส่งออกข้อมูลทุกสำนักงานจัดหางาน (ข้อมูลทั้งหมด) เฉพาะผู้ดูแลระบบที่เข้าด้วยรหัสผ่านในหน้าจัดการ Webhook */}
               <div className="bg-[#D1FAE5] border-2 border-black rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[4px_4px_0px_0px_#000000]">
